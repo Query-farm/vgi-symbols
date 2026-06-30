@@ -13,7 +13,7 @@ repository = "https://github.com/Query-farm/vgi-symbols"
 [workspace.dependencies]
 # VGI Rust SDK (worker side), published on crates.io. Kept in lockstep with
 # vgi-fixedformat (vgi 0.9 / vgi-rpc 0.7 / arrow 59) so a single arrow resolves.
-vgi = "0.9.5"
+vgi = "0.10.0"
 vgi-rpc = { version = "0.7.0", default-features = false, features = ["macros", "http"] }
 arrow = { version = "59", default-features = false, features = ["ipc"] }
 arrow-array = "59"

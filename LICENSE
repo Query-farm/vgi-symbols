@@ -1,36 +1,21 @@
-Query Farm Source-Available License
+MIT License
 
 Copyright 2026 Query Farm LLC - https://query.farm
 
-This software (the "Software") is made available by Query Farm LLC ("Query
-Farm") as a source-available, stateful compute asset. It is NOT open source.
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-1. Grant. Subject to the terms below, Query Farm grants you a non-exclusive,
-   non-transferable, revocable license to view, compile, run, and internally
-   evaluate the Software, and to use the Software together with a validly
-   licensed Query Farm / VGI deployment for your own internal business purposes.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-2. Restrictions. You may not, without Query Farm's prior written consent:
-   (a) redistribute, sublicense, sell, rent, or host the Software (in source or
-       binary form) as a service to third parties;
-   (b) remove or alter any copyright, license, or attribution notices; or
-   (c) use the Software to build or operate a competing symbolication,
-       debug-info-cache, or symbol-store product or service.
-
-3. Reservation. All rights not expressly granted are reserved by Query Farm.
-   No rights are granted by implication, estoppel, or otherwise.
-
-4. No Warranty. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
-
-5. Limitation of Liability. IN NO EVENT SHALL QUERY FARM BE LIABLE FOR ANY
-   CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT,
-   OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE
-   USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-Third-party dependencies are licensed under their own terms (all permissive —
-MIT or Apache-2.0; see Cargo.toml and `cargo deny`). This license applies to the
-vgi-symbols worker source authored by Query Farm.
-
-For commercial licensing or questions: https://query.farm
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

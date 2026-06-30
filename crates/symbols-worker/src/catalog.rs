@@ -74,7 +74,7 @@ pub fn catalog_metadata(name: &str) -> CatalogModel {
             ),
             (
                 "vgi.license".to_string(),
-                "Query Farm Source-Available".to_string(),
+                "MIT".to_string(),
             ),
             ("vgi.support_contact".to_string(), format!("{REPO}/issues")),
             (

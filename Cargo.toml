@@ -6,7 +6,7 @@ members = ["crates/symbols-core", "crates/symbols-worker"]
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.90"
-license = "LicenseRef-Query-Farm-Source-Available"
+license = "MIT"
 authors = ["Query Farm LLC <hello@query.farm>"]
 repository = "https://github.com/Query-farm/vgi-symbols"
 

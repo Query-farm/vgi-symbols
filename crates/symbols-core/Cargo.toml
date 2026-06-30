@@ -1,0 +1,27 @@
+[package]
+name = "symbols-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Pure-compute native-symbolication core (DWARF/PDB resolve, debug-id derivation, build-id-keyed debug-info cache) for the vgi-symbols VGI worker"
+
+[dependencies]
+object.workspace = true
+addr2line.workspace = true
+gimli.workspace = true
+pdb-addr2line.workspace = true
+symbolic-demangle.workspace = true
+symbolic-common.workspace = true
+debugid.workspace = true
+uuid.workspace = true
+lru.workspace = true
+memmap2.workspace = true
+glob.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+proptest = "1"

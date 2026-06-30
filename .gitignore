@@ -1,0 +1,13 @@
+/target
+/build
+**/*.rs.bk
+.DS_Store
+# vgi-lint review cache
+.vgi-review-cache.json
+# Claude Code session/worktree scratch (agent worktrees, local settings)
+/.claude
+# cargo-fuzz build artifacts
+/crates/symbols-worker/fuzz/target
+/crates/symbols-worker/fuzz/corpus
+/crates/symbols-worker/fuzz/artifacts
+# proptest regression seeds are committed deliberately; ignore transient ones elsewhere

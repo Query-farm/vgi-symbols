@@ -1,0 +1,32 @@
+# vgi-lint configuration for the vgi-symbols worker.
+#
+# vgi-lint inspects the metadata the worker advertises over VGI (catalog/schema
+# comments + tags, per-function descriptions, per-argument docs) and grades it
+# against the strict metadata-quality profile. CI runs it at `fail-on = info`.
+
+# Gate the worker at the strictest level: any info-or-higher finding fails CI.
+fail-on = "info"
+
+[catalog]
+# The catalog object must carry a source_url pointing at the canonical repo
+# (VGI139) and classifying tags (domain/category/topic). These are emitted from
+# `crates/symbols-worker/src/catalog.rs`.
+source_url = "https://github.com/Query-farm/vgi-symbols"
+tags = [
+  "symbolication",
+  "dwarf",
+  "pdb",
+  "addr2line",
+  "build-id",
+  "debug-info",
+  "stack-frame",
+  "inline-frames",
+  "demangle",
+  "minidump",
+  "pprof",
+  "perf",
+  "profiling",
+  "crash-triage",
+  "dfir",
+  "observability",
+]

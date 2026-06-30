@@ -1,0 +1,36 @@
+[package]
+name = "symbols-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+# Detach from the parent workspace so `cargo fuzz` builds standalone.
+[workspace]
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+symbols-core = { path = "../../symbols-core" }
+
+[[bin]]
+name = "parse_module"
+path = "fuzz_targets/parse_module.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "derive_id"
+path = "fuzz_targets/derive_id.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "resolve_addr"
+path = "fuzz_targets/resolve_addr.rs"
+test = false
+doc = false
+bench = false

@@ -1,0 +1,46 @@
+[workspace]
+resolver = "2"
+members = ["crates/symbols-core", "crates/symbols-worker"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.90"
+license = "LicenseRef-Query-Farm-Source-Available"
+authors = ["Query Farm LLC <hello@query.farm>"]
+repository = "https://github.com/Query-farm/vgi-symbols"
+
+[workspace.dependencies]
+# VGI Rust SDK (worker side), published on crates.io. Kept in lockstep with
+# vgi-fixedformat (vgi 0.9 / vgi-rpc 0.7 / arrow 59) so a single arrow resolves.
+vgi = "0.9.5"
+vgi-rpc = { version = "0.7.0", default-features = false, features = ["macros", "http"] }
+arrow = { version = "59", default-features = false, features = ["ipc"] }
+arrow-array = "59"
+arrow-buffer = "59"
+arrow-schema = "59"
+arrow-select = "59"
+
+# Symbolication stack — all MIT or MIT/Apache-2.0 (zero copyleft); pinned to the
+# co-versioned addr2line/object/gimli set.
+object = { version = "0.39", default-features = false, features = ["read", "std", "compression"] }
+addr2line = { version = "0.27", default-features = false, features = ["std", "fallible-iterator", "smallvec", "rustc-demangle", "cpp_demangle"] }
+gimli = { version = "0.34", default-features = false, features = ["read", "std", "endian-reader"] }
+# PDB types come from the `pdb2` fork that `pdb-addr2line` re-exports (as
+# `pdb_addr2line::pdb`), so we do not depend on the original `pdb` crate directly.
+pdb-addr2line = "0.12"
+symbolic-demangle = { version = "13.6", default-features = false, features = ["cpp", "rust", "msvc", "swift"] }
+symbolic-common = "13.6"
+debugid = "0.8"
+uuid = "1"
+lru = "0.16"
+memmap2 = "0.9"
+glob = "0.3"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+symbols-core = { path = "crates/symbols-core" }
+
+[profile.release]
+opt-level = 2
+strip = true

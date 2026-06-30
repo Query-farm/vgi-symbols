@@ -1,0 +1,70 @@
+# name: test/sql/resolve.test
+# description: Bulk symbolication — symbolicate / function_name / inline expansion
+# group: [sql]
+
+require-env VGI_SYMBOLS_WORKER
+
+require-env VGI_SYMBOLS_DIR
+
+statement ok
+LOAD vgi;
+
+statement ok
+ATTACH 'symbols' AS symbols (TYPE vgi, LOCATION '${VGI_SYMBOLS_WORKER}');
+
+# Point the worker at the directory of committed Mach-O dSYM fixtures.
+statement ok
+CALL symbols.add_source('dir', path => '${VGI_SYMBOLS_DIR}');
+
+# Address 4294968116 (0x100000334) is inside apply(), where inner_lo was inlined
+# into inner_hi which was inlined into apply — a three-level inline chain.
+
+# symbolicate collapses the inline chain; the physical frame is `apply`.
+query T
+SELECT (symbols.main.symbolicate('76ff8518da153e64a8403892fcbf11250', 4294968116)).function;
+----
+apply
+
+# The status of a clean resolve is 'ok'.
+query T
+SELECT (symbols.main.symbolicate('76ff8518da153e64a8403892fcbf11250', 4294968116)).status;
+----
+ok
+
+# The inline chain in the scalar STRUCT is innermost-first.
+query T
+SELECT list_transform((symbols.main.symbolicate('76ff8518da153e64a8403892fcbf11250', 4294968116)).inlined, x -> x.function);
+----
+[inner_lo, inner_hi]
+
+# function_name fast path returns the innermost name.
+query T
+SELECT symbols.main.function_name('76ff8518da153e64a8403892fcbf11250', 4294968116);
+----
+inner_lo
+
+# inline_frames returns just the chain (innermost-first, no physical frame).
+query T
+SELECT list_transform(symbols.main.inline_frames('76ff8518da153e64a8403892fcbf11250', 4294968116), x -> x.function);
+----
+[inner_lo, inner_hi]
+
+# The bulk per-row path: scalar symbolicate over a column of frames.
+query TT
+SELECT (symbols.main.symbolicate(f.build_id, f.address)).function,
+       (symbols.main.symbolicate(f.build_id, f.address)).status
+FROM (VALUES ('76ff8518da153e64a8403892fcbf11250', 4294968116::UBIGINT)) AS f(build_id, address);
+----
+apply	ok
+
+# Inline-expanded ROWS via UNNEST of the inline list — the per-frame JOIN that
+# fans one address out to its inline chain (innermost-first).
+query IT
+SELECT u.depth, u.fr.function
+FROM (VALUES ('76ff8518da153e64a8403892fcbf11250', 4294968116::UBIGINT)) AS f(build_id, address),
+     UNNEST(list_transform((symbols.main.symbolicate(f.build_id, f.address)).inlined,
+                           (x, i) -> {'depth': i, 'fr': x})) AS t(u)
+ORDER BY u.depth;
+----
+1	inner_lo
+2	inner_hi

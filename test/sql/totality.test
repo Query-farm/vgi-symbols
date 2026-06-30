@@ -1,0 +1,72 @@
+# name: test/sql/totality.test
+# description: Totality (never drop a frame), negative cache, module_info, demangle, cache
+# group: [sql]
+
+require-env VGI_SYMBOLS_WORKER
+
+require-env VGI_SYMBOLS_DIR
+
+statement ok
+LOAD vgi;
+
+statement ok
+ATTACH 'symbols' AS symbols (TYPE vgi, LOCATION '${VGI_SYMBOLS_WORKER}');
+
+statement ok
+CALL symbols.add_source('dir', path => '${VGI_SYMBOLS_DIR}');
+
+# An unknown build-id never drops the frame: symbolicate still returns a row
+# with status not_found (NULL symbols), never an error.
+query TT
+SELECT (symbols.main.symbolicate('deadbeefdeadbeefdeadbeefdeadbeef0', 4096)).status,
+       (symbols.main.symbolicate('deadbeefdeadbeefdeadbeefdeadbeef0', 4096)).function IS NULL;
+----
+not_found	true
+
+# A mixed frame table never drops a frame: the resolvable one is 'ok', the
+# unknown one is 'not_found' — one row each, the JOIN stays total.
+query TT
+SELECT f.build_id, (symbols.main.symbolicate(f.build_id, f.address)).status
+FROM (VALUES
+        ('76ff8518da153e64a8403892fcbf11250', 4294968116::UBIGINT),
+        ('00000000000000000000000000000000a', 4294968116::UBIGINT)) AS f(build_id, address)
+ORDER BY f.build_id;
+----
+00000000000000000000000000000000a	not_found
+76ff8518da153e64a8403892fcbf11250	ok
+
+# module_info triages a debug file by path without resolving.
+query TTT
+SELECT format, arch, has_line_table::VARCHAR
+FROM symbols.main.module_info('${VGI_SYMBOLS_DIR}/macho_inline.dwarf');
+----
+MachO	aarch64	true
+
+# The debug-id reported by module_info is the normalized cache key.
+query T
+SELECT debug_id FROM symbols.main.module_info('${VGI_SYMBOLS_DIR}/macho_inline.dwarf');
+----
+76ff8518da153e64a8403892fcbf11250
+
+# demangle is pure and total — Itanium C++, and passthrough of an unmangled name.
+query T
+SELECT symbols.main.demangle('_ZN3foo3barEv');
+----
+foo::bar
+
+query T
+SELECT symbols.main.demangle('main');
+----
+main
+
+# list_sources audits the registered source and its (zero) egress.
+query TTT
+SELECT kind, enabled::VARCHAR, egress::VARCHAR FROM symbols.main.list_sources();
+----
+dir	true	false
+
+# cache_status shows the module that the resolves above made resident.
+query I
+SELECT count(*) FROM symbols.main.cache_status() WHERE resident AND debug_id = '76ff8518da153e64a8403892fcbf11250';
+----
+1

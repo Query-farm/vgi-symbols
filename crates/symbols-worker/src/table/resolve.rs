@@ -6,7 +6,7 @@
 
 use arrow_array::RecordBatch;
 use vgi::table_in_out::TableInOutFunction;
-use vgi::{ArgSpec, BindParams, BindResponse, FunctionExample, FunctionMetadata, ProcessParams};
+use vgi::{ArgSpec, BindParams, BindResponse, FunctionMetadata, ProcessParams};
 use vgi_rpc::Result;
 
 use crate::schema::{resolved_schema, ResolvedBatchBuilder, ResolvedRows};
@@ -41,18 +41,22 @@ impl TableInOutFunction for Resolve {
              dwarf, pdb, profiling, minidump, crash, build_id, address",
         );
         tags.push(("vgi.result_columns_md".into(), RESULT_COLUMNS_MD.into()));
+        // No `vgi.example_queries` / `vgi.executable_examples` here: `resolve` is a
+        // table-in-out function whose only useful call is per-row over an input
+        // table — `FROM frames f, LATERAL symbols.main.resolve(f.build_id,
+        // f.address)`. The current DuckDB + vgi binder rejects per-row column
+        // parameters (literals only), and a literal/empty single-frame call streams
+        // through the table-in-out exchange without terminating under a pulling
+        // cursor, so there is no self-contained query that both runs to completion
+        // and demonstrates real use. The LATERAL JOIN pattern (and the practical
+        // alternatives — scalar `symbolicate` over a frame column, or
+        // `resolve_batch` over an aggregated LIST) are documented in `vgi.doc_md`
+        // and the schema's `vgi.example_queries`.
         FunctionMetadata {
             description: "Resolve a column of (build_id, address) frames to inline-expanded \
                           function/file/line rows (LATERAL)"
                 .into(),
-            examples: vec![FunctionExample {
-                sql: "SELECT f.frame_idx, r.inline_depth, r.function, r.file, r.line \
-                      FROM stack_frames f, LATERAL symbols.resolve(f.build_id, f.address) r \
-                      ORDER BY f.frame_idx, r.inline_depth;"
-                    .into(),
-                description: "Bulk-symbolicate a stack-frame table as a JOIN.".into(),
-                expected_output: None,
-            }],
+            examples: Vec::new(),
             tags,
             ..Default::default()
         }

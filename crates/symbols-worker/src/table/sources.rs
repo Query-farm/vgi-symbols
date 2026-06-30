@@ -22,7 +22,7 @@ impl TableFunction for AddSource {
         "add_source"
     }
     fn metadata(&self) -> FunctionMetadata {
-        let tags = crate::meta::object_tags(
+        let mut tags = crate::meta::object_tags(
             "Add Symbol Source",
             "Register where debug files live so `resolve`/`symbolicate` can find them, returning \
              the assigned `source_id`. Sources are tried in the order added; the first debug-id \
@@ -38,15 +38,25 @@ impl TableFunction for AddSource {
             "add_source, symbol source, dir, glob, debuginfod, s3, http, debug files, egress, \
              secret, data residency",
         );
+        tags.push((
+            "vgi.result_columns_md".into(),
+            "Returns a single row:\n\n\
+             | column | type | description |\n\
+             |---|---|---|\n\
+             | `source_id` | VARCHAR | The id assigned to the new source (e.g. `src0`). Pass it to \
+             `drop_source` to remove it. |"
+                .into(),
+        ));
+        tags.push((
+            "vgi.executable_examples".into(),
+            r#"[{"description":"Register a local, zero-egress directory of symbol files and capture its assigned source_id (use `add_source('glob', path => '/builds/**/*.{debug,pdb}')` for a recursive glob, or a remote kind like 'debuginfod'/'s3'/'http' with `enabled => true`).","sql":"SELECT source_id FROM symbols.main.add_source('dir', path => '/srv/debug')"}]"#
+                .into(),
+        ));
         FunctionMetadata {
             description: "Register a symbol source (dir/glob/debuginfod/s3/http); returns its \
                           source_id"
                 .into(),
-            examples: vec![FunctionExample {
-                sql: "CALL symbols.add_source('dir', path => '/srv/debug');".into(),
-                description: "Point the worker at a local directory of symbol files.".into(),
-                expected_output: None,
-            }],
+            examples: Vec::new(),
             tags,
             ..Default::default()
         }
@@ -149,21 +159,28 @@ impl TableFunction for ListSources {
              | `egress` | BOOLEAN | Whether using it crosses the trust boundary. |"
                 .into(),
         ));
+        tags.push((
+            "vgi.executable_examples".into(),
+            r#"[{"description":"Audit the registered symbol sources in resolve order, including whether each is enabled and whether using it crosses the trust boundary (egress). Returns no rows until a source is registered with add_source; pass enabled_only => true to list only active sources.","sql":"SELECT source_id, kind, location, enabled, egress FROM symbols.main.list_sources()"}]"#
+                .into(),
+        ));
         FunctionMetadata {
             description: "List the registered symbol sources (source_id, kind, location, enabled, \
                           egress)"
                 .into(),
-            examples: vec![FunctionExample {
-                sql: "SELECT * FROM symbols.main.list_sources();".into(),
-                description: "Audit the registered symbol sources and their egress.".into(),
-                expected_output: None,
-            }],
+            examples: Vec::new(),
             tags,
             ..Default::default()
         }
     }
     fn argument_specs(&self) -> Vec<ArgSpec> {
-        Vec::new()
+        vec![ArgSpec::const_arg(
+            "enabled_only",
+            -1,
+            "boolean",
+            "When true, return only sources that are currently enabled (active). Defaults to false \
+             (every registered source, enabled or not).",
+        )]
     }
     fn on_bind(&self, _params: &BindParams) -> Result<BindResponse> {
         Ok(BindResponse {
@@ -178,7 +195,11 @@ impl TableFunction for ListSources {
         })
     }
     fn producer(&self, params: &ProcessParams) -> Result<Box<dyn TableProducer>> {
-        let specs = with_state(|state| state.list_sources());
+        let enabled_only = params.arguments.named_bool("enabled_only").unwrap_or(false);
+        let mut specs = with_state(|state| state.list_sources());
+        if enabled_only {
+            specs.retain(|s| s.enabled);
+        }
         Ok(Box::new(SourcesProducer {
             schema: params.output_schema.clone(),
             specs: Some(specs),
@@ -230,7 +251,7 @@ impl TableFunction for DropSource {
         "drop_source"
     }
     fn metadata(&self) -> FunctionMetadata {
-        let tags = crate::meta::object_tags(
+        let mut tags = crate::meta::object_tags(
             "Drop Symbol Source",
             "Remove a previously-registered symbol source by its `source_id`, returning whether a \
              source was actually removed. The local file index is rebuilt lazily on the next \
@@ -239,12 +260,24 @@ impl TableFunction for DropSource {
              removed).",
             "drop_source, remove source, source_id, deregister",
         );
+        tags.push((
+            "vgi.result_columns_md".into(),
+            "Returns a single row:\n\n\
+             | column | type | description |\n\
+             |---|---|---|\n\
+             | `dropped` | BOOLEAN | True if a source with that `source_id` existed and was \
+             removed; false if no such source was registered. |"
+                .into(),
+        ));
         FunctionMetadata {
             description: "Remove a registered symbol source by id; returns whether one was removed"
                 .into(),
             examples: vec![FunctionExample {
                 sql: "SELECT dropped FROM symbols.main.drop_source('src0');".into(),
-                description: "Deregister a symbol source.".into(),
+                description:
+                    "Deregister the symbol source with id 'src0'; `dropped` is false if no \
+                              such source was registered."
+                        .into(),
                 expected_output: None,
             }],
             tags,

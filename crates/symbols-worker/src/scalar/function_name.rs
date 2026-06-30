@@ -45,8 +45,11 @@ impl ScalarFunction for FunctionName {
                 .into(),
             return_type: Some(DataType::Utf8),
             examples: vec![FunctionExample {
-                sql: "SELECT symbols.main.function_name('e4c1f2b9', 0x4a1f0);".into(),
-                description: "Resolve a frame to its crash-site function name.".into(),
+                sql: "SELECT symbols.main.function_name('e4c1f2b9', 303600) AS function;".into(),
+                description: "Resolve a frame (build-id 'e4c1f2b9', module-relative address \
+                              303600) to just its innermost function name; returns NULL until a \
+                              symbol source for that build-id is registered with `add_source`."
+                    .into(),
                 expected_output: None,
             }],
             tags,

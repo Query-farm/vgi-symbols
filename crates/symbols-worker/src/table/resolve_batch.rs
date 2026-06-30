@@ -7,7 +7,7 @@ use arrow_array::cast::AsArray;
 use arrow_array::{Array, RecordBatch, StructArray};
 use arrow_schema::DataType;
 use vgi::table_in_out::TableInOutFunction;
-use vgi::{ArgSpec, BindParams, BindResponse, FunctionExample, FunctionMetadata, ProcessParams};
+use vgi::{ArgSpec, BindParams, BindResponse, FunctionMetadata, ProcessParams};
 use vgi_rpc::{Result, RpcError};
 
 use crate::schema::{resolved_schema, ResolvedBatchBuilder, ResolvedRows};
@@ -39,17 +39,20 @@ impl TableInOutFunction for ResolveBatch {
              frame_idx, build_id, address",
         );
         tags.push(("vgi.result_columns_md".into(), RESULT_COLUMNS_MD.into()));
+        // No `vgi.example_queries` / `vgi.executable_examples` here: `resolve_batch`
+        // is a table-in-out function fed a `LIST<STRUCT(build_id, address)>` that is
+        // materialized as the input stream. The binder rejects a subquery argument,
+        // and a literal-list call streams through the table-in-out exchange without
+        // terminating under a pulling cursor, so there is no self-contained query
+        // that both runs to completion and shows real use. The practical
+        // aggregated-list pattern — `resolve_batch((SELECT list({build_id, address})
+        // FROM locations))` — is documented in `vgi.doc_md` and the schema's
+        // `vgi.example_queries`.
         FunctionMetadata {
             description: "Resolve a LIST of (build_id, address) frames in one pass; rows carry \
                           frame_idx back into the input list"
                 .into(),
-            examples: vec![FunctionExample {
-                sql: "SELECT * FROM symbols.resolve_batch((SELECT list({build_id: build_id, \
-                      address: addr}) FROM pprof_locations));"
-                    .into(),
-                description: "Symbolicate a whole pprof location table in one pass.".into(),
-                expected_output: None,
-            }],
+            examples: Vec::new(),
             tags,
             ..Default::default()
         }

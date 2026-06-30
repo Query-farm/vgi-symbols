@@ -72,10 +72,7 @@ pub fn catalog_metadata(name: &str) -> CatalogModel {
                 "vgi.copyright".to_string(),
                 "Copyright 2026 Query Farm LLC - https://query.farm".to_string(),
             ),
-            (
-                "vgi.license".to_string(),
-                "MIT".to_string(),
-            ),
+            ("vgi.license".to_string(), "MIT".to_string()),
             ("vgi.support_contact".to_string(), format!("{REPO}/issues")),
             (
                 "vgi.support_policy_url".to_string(),
@@ -127,13 +124,23 @@ pub fn catalog_metadata(name: &str) -> CatalogModel {
                 ),
                 (
                     "vgi.example_queries".to_string(),
-                    "CALL symbols.add_source('dir', path => '/srv/debug');\n\
-                     SELECT symbols.main.symbolicate('e4c1f2b9', 0x4a1f0);\n\
-                     SELECT f.frame_idx, r.inline_depth, r.function, r.file, r.line FROM \
-                     stack_frames f, LATERAL symbols.resolve(f.build_id, f.address) r;\n\
+                    // Illustrative usage (not auto-executed). Addresses are decimal,
+                    // module-relative virtual addresses. Note: the current DuckDB +
+                    // vgi binder accepts only literal table-function params, so the
+                    // bulk JOIN uses the scalar `symbolicate` over a frame column
+                    // (UNNEST `inlined` for inline-expanded rows) or `resolve_batch`
+                    // over an aggregated LIST — the `LATERAL symbols.main.resolve(...)`
+                    // per-row form lights up once the binder gains lateral support.
+                    "SELECT source_id FROM symbols.main.add_source('dir', path => '/srv/debug');\n\
+                     SELECT symbols.main.symbolicate('e4c1f2b9', 303600) AS frame;\n\
+                     SELECT f.build_id, f.address, symbols.main.function_name(f.build_id, \
+                     f.address) AS function FROM stack_frames f;\n\
+                     SELECT * FROM symbols.main.resolve_batch((SELECT list({build_id: build_id, \
+                     address: address}) FROM stack_frames));\n\
                      SELECT symbols.main.demangle('_ZN3foo3barEv');\n\
                      SELECT * FROM symbols.main.module_info('/srv/debug/libssl.so.debug');\n\
-                     SELECT debug_id, name, bytes_resident FROM symbols.main.cache_status();"
+                     SELECT debug_id, name, bytes_resident FROM symbols.main.cache_status() ORDER \
+                     BY bytes_resident DESC;"
                         .to_string(),
                 ),
             ],

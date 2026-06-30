@@ -9,7 +9,7 @@ use arrow_array::{ArrayRef, RecordBatch};
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use symbols_core::frame::ModuleInfo;
 use vgi::table_function::{TableFunction, TableProducer};
-use vgi::{ArgSpec, BindParams, BindResponse, FunctionExample, FunctionMetadata, ProcessParams};
+use vgi::{ArgSpec, BindParams, BindResponse, FunctionMetadata, ProcessParams};
 use vgi_rpc::{OutputCollector, Result, RpcError};
 
 use crate::state::with_state;
@@ -147,16 +147,20 @@ impl TableFunction for ModuleInfoBlob {
         let (llm, md, kw, cols) = columns_md();
         let mut tags = crate::meta::object_tags("Module Info (BLOB)", &llm, &md, &kw);
         tags.push(("vgi.result_columns_md".into(), cols));
+        // Inline-BLOB overload: in practice pass the file's bytes, e.g.
+        // `module_info(read_blob('/srv/debug/libssl.so.debug'))`. The runnable
+        // example uses a short BLOB literal so it is self-contained; bytes that
+        // are not a recognizable debug file yield zero rows (no error).
+        tags.push((
+            "vgi.executable_examples".into(),
+            r#"[{"description":"Triage debug-file bytes passed inline as a BLOB (returns one row with format / debug_id / has_line_table, or zero rows if the bytes are not a recognizable debug file). In practice read a real file: `module_info(read_blob('/srv/debug/libssl.so.debug'))`.","sql":"SELECT * FROM symbols.main.module_info('\\x7fELF'::BLOB)"}]"#
+                .into(),
+        ));
         FunctionMetadata {
             description: "Inspect a debug file given inline as a BLOB (format, debug-id, line \
                           info) without resolving"
                 .into(),
-            examples: vec![FunctionExample {
-                sql: "SELECT * FROM symbols.main.module_info(read_blob('/srv/debug/libssl.so.debug'));"
-                    .into(),
-                description: "Triage a debug file blob: format, debug-id, has_line_table.".into(),
-                expected_output: None,
-            }],
+            examples: Vec::new(),
             tags,
             ..Default::default()
         }
@@ -199,15 +203,19 @@ impl TableFunction for ModuleInfoPath {
         let (llm, md, kw, cols) = columns_md();
         let mut tags = crate::meta::object_tags("Module Info (path)", &llm, &md, &kw);
         tags.push(("vgi.result_columns_md".into(), cols));
+        // Path overload: returns one row describing the file, or zero rows if the
+        // path is missing or not a recognizable debug file (never an error). The
+        // example uses a placeholder path so it runs standalone (zero rows).
+        tags.push((
+            "vgi.executable_examples".into(),
+            r#"[{"description":"Triage a debug file by filesystem path (one row with format / debug_id / has_line_table, or zero rows if the path is missing or not a debug file). Point it at a real symbol file on the worker host, e.g. '/srv/debug/libssl.so.debug'.","sql":"SELECT * FROM symbols.main.module_info('/srv/debug/libssl.so.debug')"}]"#
+                .into(),
+        ));
         FunctionMetadata {
             description: "Inspect a debug file by path (format, debug-id, line info) without \
                           resolving"
                 .into(),
-            examples: vec![FunctionExample {
-                sql: "SELECT * FROM symbols.main.module_info('/srv/debug/libssl.so.debug');".into(),
-                description: "Triage a debug file by path.".into(),
-                expected_output: None,
-            }],
+            examples: Vec::new(),
             tags,
             ..Default::default()
         }

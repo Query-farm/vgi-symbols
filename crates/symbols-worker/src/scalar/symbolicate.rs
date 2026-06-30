@@ -64,8 +64,12 @@ impl ScalarFunction for Symbolicate {
                           collapsed into a list"
                 .into(),
             examples: vec![FunctionExample {
-                sql: "SELECT symbols.main.symbolicate('e4c1f2b9', 0x4a1f0);".into(),
-                description: "Resolve a single frame to function/file/line + inline chain.".into(),
+                sql: "SELECT symbols.main.symbolicate('e4c1f2b9', 303600) AS frame;".into(),
+                description: "Resolve one module-relative frame (build-id 'e4c1f2b9', address \
+                              303600) to a STRUCT of function/file/line plus the collapsed inline \
+                              chain; the STRUCT's `status` is 'not_found' until a matching symbol \
+                              source is registered with `add_source`."
+                    .into(),
                 expected_output: None,
             }],
             tags,

@@ -72,22 +72,27 @@ impl TableFunction for CacheStatus {
              | `resident` | BOOLEAN | Currently resident in RAM. |"
                 .into(),
         ));
+        tags.push((
+            "vgi.executable_examples".into(),
+            r#"[{"description":"List the debug modules the worker has parsed and the manifest knows about, hottest first. Returns no rows on a cold worker (nothing parsed yet); pass resident_only => true to skip evicted/manifest-only entries.","sql":"SELECT debug_id, name, bytes_resident, rows_resolved FROM symbols.main.cache_status() ORDER BY bytes_resident DESC"}]"#
+                .into(),
+        ));
         FunctionMetadata {
             description:
                 "Report the parsed/resident debug modules (the build-id-keyed cache state)".into(),
-            examples: vec![FunctionExample {
-                sql: "SELECT debug_id, name, bytes_resident, rows_resolved FROM \
-                      symbols.main.cache_status() ORDER BY bytes_resident DESC;"
-                    .into(),
-                description: "See what is parsed and resident right now.".into(),
-                expected_output: None,
-            }],
+            examples: Vec::new(),
             tags,
             ..Default::default()
         }
     }
     fn argument_specs(&self) -> Vec<ArgSpec> {
-        Vec::new()
+        vec![ArgSpec::const_arg(
+            "resident_only",
+            -1,
+            "boolean",
+            "When true, return only modules currently resident in RAM and skip evicted / \
+             manifest-only (and proven-missing) entries. Defaults to false (every known debug-id).",
+        )]
     }
     fn on_bind(&self, _params: &BindParams) -> Result<BindResponse> {
         Ok(BindResponse {
@@ -96,7 +101,14 @@ impl TableFunction for CacheStatus {
         })
     }
     fn producer(&self, params: &ProcessParams) -> Result<Box<dyn TableProducer>> {
-        let rows = with_state(|state| state.cache_status());
+        let resident_only = params
+            .arguments
+            .named_bool("resident_only")
+            .unwrap_or(false);
+        let mut rows = with_state(|state| state.cache_status());
+        if resident_only {
+            rows.retain(|r| r.resident);
+        }
         Ok(Box::new(StatusProducer {
             schema: params.output_schema.clone(),
             rows: Some(rows),
@@ -171,7 +183,7 @@ impl TableFunction for CacheEvict {
         "cache_evict"
     }
     fn metadata(&self) -> FunctionMetadata {
-        let tags = crate::meta::object_tags(
+        let mut tags = crate::meta::object_tags(
             "Cache Evict",
             "Force whole-module eviction from the resident debug-info cache, returning the number \
              of bytes freed. With `debug_id =>` set, evict just that module (e.g. after its symbol \
@@ -183,13 +195,25 @@ impl TableFunction for CacheEvict {
              evicts one module, `cache_evict()` clears the resident set (manifest kept).",
             "cache_evict, evict, LRU, reclaim, resident, debug_id, refresh symbols",
         );
+        tags.push((
+            "vgi.result_columns_md".into(),
+            "Returns a single row:\n\n\
+             | column | type | description |\n\
+             |---|---|---|\n\
+             | `bytes_freed` | BIGINT | Resident bytes reclaimed by the eviction (0 if the module \
+             was not resident, or the cache was already empty). |"
+                .into(),
+        ));
         FunctionMetadata {
             description: "Force-evict one module (or the whole resident set) from the cache; \
                           returns bytes freed"
                 .into(),
             examples: vec![FunctionExample {
                 sql: "SELECT bytes_freed FROM symbols.main.cache_evict();".into(),
-                description: "Clear the resident cache, keeping the manifest.".into(),
+                description:
+                    "Clear the entire resident cache (keeping the manifest) and report the \
+                              bytes reclaimed."
+                        .into(),
                 expected_output: None,
             }],
             tags,

@@ -23,7 +23,7 @@ impl ScalarFunction for InlineFrames {
 
     fn metadata(&self) -> FunctionMetadata {
         let tags = crate::meta::object_tags(
-            "Inline Frames",
+            "Inlined Call Chain at an Address",
             "Resolve a `(build_id, address)` frame to just its inlined call chain — a \
              LIST<STRUCT(function, file, line)> ordered innermost-first, **excluding** the physical \
              frame. Empty list when the address has no inlining (or no symbols). Useful to \
@@ -42,8 +42,12 @@ impl ScalarFunction for InlineFrames {
                 .into(),
             return_type: Some(inline_frames_list_type()),
             examples: vec![FunctionExample {
-                sql: "SELECT symbols.main.inline_frames('e4c1f2b9', 0x4a1f0);".into(),
-                description: "Get just the inlined call chain at an address.".into(),
+                sql: "SELECT symbols.main.inline_frames('e4c1f2b9', 303600) AS inline_chain;"
+                    .into(),
+                description: "Get just the inlined call chain (innermost-first, physical frame \
+                              excluded) at module-relative address 303600 in build-id 'e4c1f2b9'; \
+                              an empty list until the address has both symbols and inlining."
+                    .into(),
                 expected_output: None,
             }],
             tags,

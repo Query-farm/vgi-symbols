@@ -48,6 +48,7 @@ impl ScalarFunction for Demangle {
             "demangle, mangled, symbol, linkage name, c++, itanium, rust, msvc, swift, function \
              name",
         );
+        tags.push(("vgi.category".into(), "Demangling".into()));
         tags.push((
             "vgi.executable_examples".into(),
             r#"[{"description":"Demangle an Itanium C++ symbol.","sql":"SELECT symbols.main.demangle('_ZN3foo3barEv') AS name"}]"#
@@ -70,7 +71,7 @@ impl ScalarFunction for Demangle {
         let mut specs = vec![ArgSpec::any_column(
             "mangled",
             0,
-            "The raw mangled / linkage symbol name to demangle (VARCHAR). An unmangled name is \
+            "The raw mangled or linkage symbol name to demangle; a name that is not mangled is \
              returned unchanged.",
         )];
         if self.with_lang {

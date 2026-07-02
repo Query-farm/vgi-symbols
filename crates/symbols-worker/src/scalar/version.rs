@@ -29,6 +29,7 @@ impl ScalarFunction for SymbolsVersion {
              Argument-free and deterministic.",
             "version, build version, symbols_version, diagnostics, worker version, semver",
         );
+        tags.push(("vgi.category".into(), "Diagnostics".into()));
         tags.push((
             "vgi.executable_examples".into(),
             r#"[{"description":"Return the worker version string.","sql":"SELECT symbols.main.symbols_version() AS version"}]"#

@@ -57,6 +57,7 @@ impl TableFunction for CacheStatus {
             "cache_status, cache, resident, parsed modules, observability, bytes_resident, \
              rows_resolved, debug_id, LRU",
         );
+        tags.push(("vgi.category".into(), "Cache".into()));
         tags.push((
             "vgi.result_columns_md".into(),
             "One row per known debug-id (resident or manifest-only):\n\n\
@@ -195,6 +196,7 @@ impl TableFunction for CacheEvict {
              evicts one module, `cache_evict()` clears the resident set (manifest kept).",
             "cache_evict, evict, LRU, reclaim, resident, debug_id, refresh symbols",
         );
+        tags.push(("vgi.category".into(), "Cache".into()));
         tags.push((
             "vgi.result_columns_md".into(),
             "Returns a single row:\n\n\

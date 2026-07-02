@@ -43,7 +43,7 @@ SELECT * FROM symbols.resolve_batch((SELECT list({build_id, address}) FROM frame
 - `resolve(build_id, address) -> TABLE(...)` — inline-expanded rows; **single-frame table form with literal args** (see the binder note below).
 - `resolve_batch(frames LIST<STRUCT(build_id, address)>) -> TABLE(frame_idx, ...)` — a whole list in one pass (the bulk vectorized path).
 - `module_info(blob BLOB)` / `module_info(path VARCHAR) -> TABLE(...)` — inspect a debug file without resolving.
-- `add_source(kind [, path =>, url =>, bucket =>, enabled =>, secret =>])`, `list_sources()`, `drop_source(source_id)`.
+- `add_source(kind [, path =>, url =>, bucket =>, enabled =>, secret =>])`, `sources()`, `drop_source(source_id)`.
 - `cache_status() -> TABLE(...)`, `cache_evict(debug_id := NULL) -> BIGINT`.
 - `symbols_version()`.
 

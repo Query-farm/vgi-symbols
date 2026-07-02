@@ -45,6 +45,7 @@ impl ScalarFunction for Symbolicate {
             "symbolicate, resolve, stack frame, function, file, line, inline, addr2line, dwarf, \
              pdb, build_id, address, crash, profiling",
         );
+        tags.push(("vgi.category".into(), "Resolution".into()));
         tags.push((
             "vgi.result_columns_md".into(),
             "Returns a single STRUCT column:\n\n\

@@ -32,12 +32,17 @@ impl TableInOutFunction for ResolveBatch {
              once per call (the vectorized fast path). An unresolved frame still yields exactly one \
              `status='not_found'` row — the result is total. Addresses are MODULE-RELATIVE (the \
              caller subtracts the load base).",
-            "Resolve a whole `LIST<STRUCT(build_id, address)>` in one pass: \
-             `SELECT * FROM symbols.resolve_batch((SELECT list({build_id, address}) FROM locs))`. \
-             Rows carry `frame_idx` back into the list. Addresses are module-relative.",
+            "Resolve a whole `LIST<STRUCT(build_id, address)>` in one pass; rows carry \
+             `frame_idx` back into the input list, and addresses are module-relative:\n\n\
+             ```sql\n\
+             SELECT * FROM symbols.main.resolve_batch(\n  \
+               (SELECT list({build_id, address}) FROM locs)\n\
+             )\n\
+             ```",
             "resolve_batch, batch, list, pprof, minidump, perf, vectorized, symbolicate, inline, \
              frame_idx, build_id, address",
         );
+        tags.push(("vgi.category".into(), "Resolution".into()));
         tags.push(("vgi.result_columns_md".into(), RESULT_COLUMNS_MD.into()));
         // No `vgi.example_queries` / `vgi.executable_examples` here: `resolve_batch`
         // is a table-in-out function fed a `LIST<STRUCT(build_id, address)>` that is
@@ -62,9 +67,10 @@ impl TableInOutFunction for ResolveBatch {
         vec![ArgSpec::any_column(
             "frames",
             0,
-            "A LIST<STRUCT(build_id VARCHAR, address UBIGINT)> of frames to resolve, e.g. \
-             `list({build_id: build_id, address: addr})` over a location table. `address` is the \
-             MODULE-RELATIVE virtual address (caller subtracts the load base).",
+            "The frames to resolve — a list whose every element pairs a module build-id with a \
+             module-relative address, e.g. `list({build_id: build_id, address: addr})` aggregated \
+             over a location table. The caller subtracts the load base so each address is \
+             module-relative.",
         )]
     }
 

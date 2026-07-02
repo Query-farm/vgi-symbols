@@ -89,7 +89,7 @@ SELECT debug_id, name, format, bytes_resident, rows_resolved, last_used
 FROM   symbols.main.cache_status() ORDER BY bytes_resident DESC;
 
 -- 8. Audit where symbols come from (and whether any source egresses).
-SELECT * FROM symbols.main.list_sources();
+SELECT * FROM symbols.main.sources();
 ```
 
 ### Functions
@@ -103,7 +103,7 @@ SELECT * FROM symbols.main.list_sources();
 | Resolve a column (rows) | `resolve(build_id, address) → TABLE(...)` | table-in-out † |
 | Resolve a list in one pass | `resolve_batch(LIST<STRUCT(build_id, address)>) → TABLE(frame_idx, ...)` | table-in-out † |
 | Inspect a debug file | `module_info(blob BLOB)` / `module_info(path VARCHAR) → TABLE(...)` | table |
-| Sources | `add_source(kind [, path=>, url=>, bucket=>, enabled=>, secret=>])`, `list_sources()`, `drop_source(id)` | table |
+| Sources | `add_source(kind [, path=>, url=>, bucket=>, enabled=>, secret=>])`, `sources()`, `drop_source(id)` | table |
 | Cache | `cache_status() → TABLE(...)`, `cache_evict(debug_id := NULL) → BIGINT` | table |
 
 The resolved-row shape (`resolve` / `resolve_batch`) emits **one row per (input

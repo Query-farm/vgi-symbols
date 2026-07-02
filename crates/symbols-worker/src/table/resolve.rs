@@ -23,23 +23,34 @@ impl TableInOutFunction for Resolve {
 
     fn metadata(&self) -> FunctionMetadata {
         let mut tags = crate::meta::object_tags(
-            "Resolve Frames (LATERAL)",
-            "The bulk symbolication JOIN: resolve a column of `(build_id, address)` stack frames to \
-             their inline-expanded source frames. Used LATERAL against a `stack_frames` table, it \
-             emits one row per (input frame × inline level), ordered innermost-first with the \
-             physical frame last (highest `inline_depth`, `is_inline=false`); `build_id` and \
-             `address` are echoed so you can join back. An address with no matching module yields a \
-             single `status='not_found'` row (NULL symbols) — resolution never drops a frame and \
-             never errors the scan, so the JOIN stays total. `address` is the MODULE-RELATIVE \
-             virtual address (the caller subtracts the load base). Backed by the persistent, \
-             build-id-keyed debug-info cache, so a column of millions of frames parses each module \
-             exactly once.",
-            "Resolve a column of `(build_id, address)` frames to inline-expanded rows: \
-             `FROM frames f, LATERAL symbols.resolve(f.build_id, f.address) r`. One row per inline \
-             level, innermost-first, physical frame last. `address` is module-relative.",
+            "Resolve Frames (table form)",
+            "The table form of the resolver: resolve `(build_id, address)` stack frames to their \
+             inline-expanded source frames, emitting one row per (input frame × inline level), \
+             ordered innermost-first with the physical frame last (highest `inline_depth`, \
+             `is_inline=false`); `build_id` and `address` are echoed so you can join back. An \
+             address with no matching module yields a single `status='not_found'` row (NULL \
+             symbols) — resolution never drops a frame and never errors the scan, so the result \
+             stays total. `address` is the MODULE-RELATIVE virtual address (the caller subtracts \
+             the load base). This function is designed as the per-row LATERAL JOIN surface against \
+             a `stack_frames` table; note, however, that the current DuckDB + vgi binder accepts \
+             only literal (not per-row column) table-function arguments, so for bulk work TODAY \
+             use `resolve_batch` over an aggregated LIST, or the scalar `symbolicate` / \
+             `function_name` over a frame column. Backed by the persistent, build-id-keyed \
+             debug-info cache, so each module is parsed exactly once.",
+            "Resolve `(build_id, address)` frames to inline-expanded rows — one row per inline \
+             level, innermost-first, physical frame last; `address` is module-relative. This is \
+             the table form of the resolver, designed as the per-row LATERAL JOIN surface:\n\n\
+             ```sql\n\
+             -- intended form (awaits binder lateral support)\n\
+             FROM frames f, LATERAL symbols.main.resolve(f.build_id, f.address) r\n\
+             ```\n\n\
+             The current DuckDB + vgi binder accepts only literal table-function arguments, so \
+             for bulk work today use `resolve_batch` over an aggregated LIST, or the scalar \
+             `symbolicate` / `function_name` over a frame column.",
             "resolve, symbolicate, lateral, join, stack frames, inline expansion, addr2line, \
              dwarf, pdb, profiling, minidump, crash, build_id, address",
         );
+        tags.push(("vgi.category".into(), "Resolution".into()));
         tags.push(("vgi.result_columns_md".into(), RESULT_COLUMNS_MD.into()));
         // No `vgi.example_queries` / `vgi.executable_examples` here: `resolve` is a
         // table-in-out function whose only useful call is per-row over an input
@@ -68,8 +79,8 @@ impl TableInOutFunction for Resolve {
                 "build_id",
                 0,
                 "varchar",
-                "The module's normalized debug-id, or its raw per-format build-id hex (ELF GNU \
-                 build-id / Mach-O UUID / PDB GUID). The worker normalizes either form.",
+                "The owning module's normalized debug-id, or the raw per-format build-id the \
+                 extractor captured for it; the worker accepts and normalizes either form.",
             ),
             ArgSpec::column(
                 "address",

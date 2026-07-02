@@ -59,9 +59,9 @@ SELECT symbols.main.demangle('main');
 ----
 main
 
-# list_sources audits the registered source and its (zero) egress.
+# sources() audits the registered source and its (zero) egress.
 query TTT
-SELECT kind, enabled::VARCHAR, egress::VARCHAR FROM symbols.main.list_sources();
+SELECT kind, enabled::VARCHAR, egress::VARCHAR FROM symbols.main.sources();
 ----
 dir	true	false
 

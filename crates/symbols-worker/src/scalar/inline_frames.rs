@@ -22,7 +22,7 @@ impl ScalarFunction for InlineFrames {
     }
 
     fn metadata(&self) -> FunctionMetadata {
-        let tags = crate::meta::object_tags(
+        let mut tags = crate::meta::object_tags(
             "Inlined Call Chain at an Address",
             "Resolve a `(build_id, address)` frame to just its inlined call chain — a \
              LIST<STRUCT(function, file, line)> ordered innermost-first, **excluding** the physical \
@@ -36,6 +36,7 @@ impl ScalarFunction for InlineFrames {
             "inline frames, inlining, inline chain, symbolicate, dwarf, pdb, stack, build_id, \
              address",
         );
+        tags.push(("vgi.category".into(), "Resolution".into()));
         FunctionMetadata {
             description: "Resolve a (build_id, address) frame to its inline chain only (a list of \
                           STRUCT(function, file, line))"

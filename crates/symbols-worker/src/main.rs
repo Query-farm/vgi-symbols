@@ -12,7 +12,7 @@
 //! - `symbols.main.resolve_batch(frames)` — a whole LIST of frames in one pass
 //! - `symbols.main.function_name` / `inline_frames` / `demangle` — scalar conveniences
 //! - `symbols.main.module_info` / `cache_status` / `cache_evict` — inspect modules + cache
-//! - `symbols.add_source` / `list_sources` / `drop_source` — where debug files come from
+//! - `symbols.add_source` / `sources` / `drop_source` — where debug files come from
 
 mod catalog;
 mod meta;

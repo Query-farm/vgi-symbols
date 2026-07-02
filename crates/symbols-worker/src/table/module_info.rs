@@ -146,6 +146,7 @@ impl TableFunction for ModuleInfoBlob {
     fn metadata(&self) -> FunctionMetadata {
         let (llm, md, kw, cols) = columns_md();
         let mut tags = crate::meta::object_tags("Module Info (BLOB)", &llm, &md, &kw);
+        tags.push(("vgi.category".into(), "Modules".into()));
         tags.push(("vgi.result_columns_md".into(), cols));
         // Inline-BLOB overload: in practice pass the file's bytes, e.g.
         // `module_info(read_blob('/srv/debug/libssl.so.debug'))`. The runnable
@@ -202,6 +203,7 @@ impl TableFunction for ModuleInfoPath {
     fn metadata(&self) -> FunctionMetadata {
         let (llm, md, kw, cols) = columns_md();
         let mut tags = crate::meta::object_tags("Module Info (path)", &llm, &md, &kw);
+        tags.push(("vgi.category".into(), "Modules".into()));
         tags.push(("vgi.result_columns_md".into(), cols));
         // Path overload: returns one row describing the file, or zero rows if the
         // path is missing or not a recognizable debug file (never an error). The

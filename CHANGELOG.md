@@ -17,7 +17,7 @@ All notable changes to `vgi-symbols` are documented here. The format is based on
   - Table functions: `resolve` (inline-expanded rows), `resolve_batch` (a whole
     `LIST` of frames in one pass, with `frame_idx`), `module_info` (inspect a
     debug file by BLOB or path), `cache_status` / `cache_evict`, and
-    `add_source` / `list_sources` / `drop_source`.
+    `add_source` / `sources` / `drop_source`.
 - **The build-id-keyed debug-info cache (the moat).** A process-resident,
   size-bounded (LRU by bytes + module count) cache keyed by the format-normalized
   **debug-id** (ELF GNU build-id → GUID+age, Mach-O UUID, PDB GUID+age), so a
@@ -46,5 +46,5 @@ All notable changes to `vgi-symbols` are documented here. The format is based on
   single-frame table form with literal arguments.
 - `debuginfod` / `s3` / `http` remote fetch is **registered and egress-gated but
   not performed** in this release (local-first by design); enabling a remote
-  source surfaces it in `list_sources` but does not fetch. Remote fetch is the
+  source surfaces it in `sources()` but does not fetch. Remote fetch is the
   next increment.

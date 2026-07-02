@@ -24,7 +24,7 @@ impl ScalarFunction for FunctionName {
     }
 
     fn metadata(&self) -> FunctionMetadata {
-        let tags = crate::meta::object_tags(
+        let mut tags = crate::meta::object_tags(
             "Resolve Function Name",
             "Resolve a `(build_id, address)` frame to just the innermost function name (demangled), \
              or NULL if no symbols are found. The cheap path that skips file/line and inline-chain \
@@ -40,6 +40,7 @@ impl ScalarFunction for FunctionName {
             "function name, symbolicate, resolve, addr2line, flamegraph leaf, group by, crash \
              bucket, build_id, address",
         );
+        tags.push(("vgi.category".into(), "Resolution".into()));
         FunctionMetadata {
             description: "Resolve a (build_id, address) frame to the innermost function name only"
                 .into(),
@@ -63,8 +64,8 @@ impl ScalarFunction for FunctionName {
                 "build_id",
                 0,
                 "varchar",
-                "The module's normalized debug-id, or its raw per-format build-id hex (ELF GNU \
-                 build-id / Mach-O UUID / PDB GUID). The worker normalizes either form.",
+                "The owning module's normalized debug-id, or the raw per-format build-id the \
+                 extractor captured for it; the worker accepts and normalizes either form.",
             ),
             ArgSpec::column(
                 "address",

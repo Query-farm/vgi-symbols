@@ -1,6 +1,6 @@
-//! Symbol-source config: `add_source(...)`, `list_sources()`, `drop_source(id)`.
+//! Symbol-source config: `add_source(...)`, `sources()`, `drop_source(id)`.
 //! Invoked via `CALL symbols.add_source('dir', path => '/srv/debug')` or `SELECT
-//! * FROM symbols.list_sources()`. Local sources are zero-egress; remote sources
+//! * FROM symbols.sources()`. Local sources are zero-egress; remote sources
 //! (`debuginfod`/`s3`/`http`) register with `egress=true` and default disabled.
 
 use std::sync::Arc;
@@ -38,6 +38,7 @@ impl TableFunction for AddSource {
             "add_source, symbol source, dir, glob, debuginfod, s3, http, debug files, egress, \
              secret, data residency",
         );
+        tags.push(("vgi.category".into(), "Sources".into()));
         tags.push((
             "vgi.result_columns_md".into(),
             "Returns a single row:\n\n\
@@ -129,24 +130,25 @@ impl TableFunction for AddSource {
     }
 }
 
-/// `list_sources()`.
+/// `sources()` — list the registered symbol sources.
 pub struct ListSources;
 
 impl TableFunction for ListSources {
     fn name(&self) -> &str {
-        "list_sources"
+        "sources"
     }
     fn metadata(&self) -> FunctionMetadata {
         let mut tags = crate::meta::object_tags(
-            "List Symbol Sources",
+            "Symbol Sources",
             "List the registered symbol sources in resolve order: `source_id`, `kind`, `location` \
              (the path / url / bucket), `enabled`, and `egress` (whether using the source crosses \
              the trust boundary). Use it to audit data residency — which sources are local \
              (`egress=false`) versus remote, and which are enabled.",
             "List registered symbol sources: source_id, kind, location, enabled, egress (in \
              resolve order).",
-            "list_sources, sources, audit, data residency, egress, enabled",
+            "sources, list sources, audit, data residency, egress, enabled",
         );
+        tags.push(("vgi.category".into(), "Sources".into()));
         tags.push((
             "vgi.result_columns_md".into(),
             "One row per registered source (resolve order):\n\n\
@@ -161,7 +163,7 @@ impl TableFunction for ListSources {
         ));
         tags.push((
             "vgi.executable_examples".into(),
-            r#"[{"description":"Audit the registered symbol sources in resolve order, including whether each is enabled and whether using it crosses the trust boundary (egress). Returns no rows until a source is registered with add_source; pass enabled_only => true to list only active sources.","sql":"SELECT source_id, kind, location, enabled, egress FROM symbols.main.list_sources()"}]"#
+            r#"[{"description":"Audit the registered symbol sources in resolve order, including whether each is enabled and whether using it crosses the trust boundary (egress). Returns no rows until a source is registered with add_source; pass enabled_only => true to list only active sources.","sql":"SELECT source_id, kind, location, enabled, egress FROM symbols.main.sources()"}]"#
                 .into(),
         ));
         FunctionMetadata {
@@ -260,6 +262,7 @@ impl TableFunction for DropSource {
              removed).",
             "drop_source, remove source, source_id, deregister",
         );
+        tags.push(("vgi.category".into(), "Sources".into()));
         tags.push((
             "vgi.result_columns_md".into(),
             "Returns a single row:\n\n\

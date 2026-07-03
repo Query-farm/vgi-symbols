@@ -150,11 +150,20 @@ pub fn catalog_metadata(name: &str) -> CatalogModel {
                 ),
                 (
                     "vgi.doc_md".to_string(),
-                    "The single schema for the `symbols` worker — qualify calls as \
-                     `symbols.main.<function>(...)`. It groups the symbolication functions, the \
-                     build-id-keyed debug-info cache that backs them, and the registry of symbol \
-                     sources debug files are drawn from. Local sources are zero-egress; remote \
-                     ones are opt-in. List the schema to discover the available functions."
+                    "## `symbols.main`\n\
+                     \n\
+                     Native symbolication as a SQL surface: turn module-relative `(build_id, \
+                     address)` frames into function names, source locations, and inlined call \
+                     chains by parsing DWARF and PDB debug info — the way `addr2line` and \
+                     `llvm-symbolizer` do, but as a JOIN.\n\
+                     \n\
+                     Qualify calls as `symbols.main.<function>(...)` — the catalog name matches \
+                     the ATTACH name. Resolution is backed by a persistent, build-id-keyed \
+                     debug-info cache, so each module is parsed once and reused across queries.\n\
+                     \n\
+                     Debug files are drawn from registered **symbol sources**: local directories \
+                     are zero-egress, while remote sources are opt-in. List the schema to \
+                     discover the available functions and their categories."
                         .to_string(),
                 ),
                 (

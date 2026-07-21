@@ -75,6 +75,28 @@ jobs:
         FIXTURES="$PWD/test/symbols"
         echo "::endgroup::"
 
+        echo "::group::warm the client's extension dir (vgi from community + httpfs)"
+        # This runner never installed the extensions the .test files LOAD (the
+        # gating ci job did, but on a different runner), so warm the DuckDB
+        # extension directory once. The suite's `LOAD vgi;` (and the http leg's
+        # `LOAD httpfs;`) then resolve. The extension dir is HOME-based, shared
+        # across every haybarn invocation below regardless of --test-dir.
+        WARMDIR=$(mktemp -d); mkdir -p "$WARMDIR/test"
+        cat > "$WARMDIR/test/_warm.test" <<'WARM'
+        # name: test/_warm.test
+        # group: [warm]
+        statement ok
+        INSTALL vgi FROM community;
+
+        statement ok
+        INSTALL httpfs;
+        WARM
+        # (YAML's block-indent dedent already lands these directives at column 0,
+        # as the sqllogictest runner requires.)
+        "$HAYBARN_UNITTEST" --test-dir "$WARMDIR" "test/_warm.test" \
+          || echo "::warning::extension warm step did not fully succeed"
+        echo "::endgroup::"
+
         echo "::group::stdio entrypoint smoke (full suite, cold container per ATTACH)"
         STAGE=$(mktemp -d); mkdir -p "$STAGE/test/sql"
         cp test/sql/*.test "$STAGE/test/sql/"

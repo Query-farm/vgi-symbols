@@ -59,9 +59,12 @@ SELECT symbols.main.demangle('main');
 ----
 main
 
-# sources() audits the registered source and its (zero) egress.
+# sources() audits the registered source and its (zero) egress. Use DISTINCT so
+# the assertion is independent of how many times the (identical, idempotent) dir
+# source was registered — the vgi extension may reuse one worker process across
+# test files, accumulating the same source from each file's add_source call.
 query TTT
-SELECT kind, enabled::VARCHAR, egress::VARCHAR FROM symbols.main.sources();
+SELECT DISTINCT kind, enabled::VARCHAR, egress::VARCHAR FROM symbols.main.sources();
 ----
 dir	true	false
 

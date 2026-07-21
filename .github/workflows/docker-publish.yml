@@ -1,0 +1,112 @@
+# Copyright 2026 Query Farm LLC - https://query.farm
+#
+# Build and publish the multi-arch vgi-symbols image to ghcr.io. The heavy
+# lifting (multi-arch build -> per-arch /health boot smoke -> image SQL suite ->
+# push -> manifest -> cosign-sign) lives in the shared reusable workflow
+# Query-farm/vgi-actions; this file gates on the repo's own CI suite and supplies
+# the worker-specific inputs.
+#
+# Tag-driven: vX.Y.Z -> :X.Y.Z/:X.Y/:latest, push to main -> :edge. Publishing a
+# GitHub Release creates the tag, which fires this too.
+name: Publish image to ghcr.io
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Gate every image on the full unit + vgi-extension integration suite, so a
+  # broken worker is never imaged. ci.yml's supply-chain `audit` job declares
+  # job-level `permissions: checks: write` (it posts a check-run); a called
+  # workflow's requested escalation is capped by THIS job's grant, so the `ci`
+  # job must grant checks:write too or the whole run fails to start
+  # (startup_failure, zero jobs) — same reason release.yml grants it.
+  ci:
+    permissions:
+      contents: read
+      checks: write
+    uses: ./.github/workflows/ci.yml
+
+  publish:
+    needs: [ci]
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    uses: Query-farm/vgi-actions/.github/workflows/docker-publish.yml@v1
+    secrets: inherit
+    with:
+      image_name: vgi-symbols
+      # Rust binary — nothing to `import`, so the language-import smoke is skipped.
+      # The reusable workflow still runs its dual-arch HTTP /health boot smoke.
+      smoke_import: ""
+      health_port: "8000"
+      version_check_cmd: "ci/check-version.sh"
+      # Validate the built image's transports against the signed vgi extension.
+      # The worker *logic* is already exercised every run by the gating `ci` job
+      # (all test/sql/*, unit + proptest, fuzz), so here we only prove the IMAGE's
+      # entrypoints speak the protocol end-to-end:
+      #   - stdio: run the FULL suite through `docker run … stdio` (on-host mode);
+      #   - HTTP : run the FULL suite against a SINGLE warm container (the default
+      #            `http` entrypoint + /health).
+      # Both legs mount the committed dSYM fixtures (test/symbols) read-only into
+      # the container at /fixtures and point VGI_SYMBOLS_DIR at that CONTAINER
+      # path, because add_source/module_info resolve their paths inside the worker
+      # process (which runs in the container). $CITEST_IMAGE is the loaded
+      # <image>:citest-amd64 ref; GH_TOKEN is provided for the download.
+      image_test: |
+        echo "::group::download haybarn-unittest"
+        REL=$(gh release view --repo Query-farm-haybarn/haybarn --json tagName --jq .tagName)
+        gh release download "$REL" --repo Query-farm-haybarn/haybarn \
+          --pattern 'haybarn_unittest-linux-amd64.zip' --output hb.zip --clobber
+        mkdir -p hb && unzip -o -q hb.zip -d hb
+        HAYBARN_UNITTEST="$PWD/$(find hb -name 'haybarn-unittest' -type f | head -1)"
+        chmod +x "$HAYBARN_UNITTEST"
+        FIXTURES="$PWD/test/symbols"
+        echo "::endgroup::"
+
+        echo "::group::stdio entrypoint smoke (full suite, cold container per ATTACH)"
+        STAGE=$(mktemp -d); mkdir -p "$STAGE/test/sql"
+        cp test/sql/*.test "$STAGE/test/sql/"
+        VGI_SYMBOLS_WORKER="docker run -i --rm -v $FIXTURES:/fixtures:ro $CITEST_IMAGE stdio" \
+          VGI_SYMBOLS_DIR="/fixtures" \
+          "$HAYBARN_UNITTEST" --test-dir "$STAGE" "test/sql/*"
+        echo "::endgroup::"
+
+        echo "::group::full SQL suite — HTTP transport (one warm container)"
+        CID=$(docker run -d -p 18000:8000 -v "$FIXTURES":/fixtures:ro "$CITEST_IMAGE")
+        trap 'docker rm -f "$CID" >/dev/null 2>&1 || true' EXIT
+        for _ in $(seq 1 30); do curl -fsS -o /dev/null http://localhost:18000/health && break; sleep 1; done
+        # The vgi extension's HTTP client rides on DuckDB httpfs, so the http
+        # ATTACH needs httpfs loaded in each .test session; inject it after the
+        # `LOAD vgi;` the files already carry (a missing httpfs surfaces as an
+        # "HTTP" error the sqllogictest runner silently auto-skips).
+        HSTAGE=$(mktemp -d); mkdir -p "$HSTAGE/test/sql"
+        for f in test/sql/*.test; do
+          awk '{print}
+               /^LOAD vgi;$/{print ""; print "statement ok"; print "INSTALL httpfs;"; print ""; print "statement ok"; print "LOAD httpfs;"}' \
+            "$f" > "$HSTAGE/test/sql/$(basename "$f")"
+        done
+        REPORT="$HSTAGE/.report.txt"
+        set -o pipefail
+        VGI_SYMBOLS_WORKER="http://localhost:18000" \
+          VGI_SYMBOLS_DIR="/fixtures" \
+          "$HAYBARN_UNITTEST" --test-dir "$HSTAGE" "test/sql/*" 2>&1 | tee "$REPORT"
+        # A skip is NOT a pass: the runner auto-skips any test whose error message
+        # contains "HTTP" (default ignore list), so a broken http leg can exit 0
+        # while running nothing. Fail loudly if anything was skipped.
+        if grep -qiE "All tests were skipped|total skipped [1-9]" "$REPORT"; then
+          echo "::error::HTTP leg SKIPPED tests — an ATTACH/transport error was silently ignored (not a pass)." >&2
+          exit 1
+        fi
+        echo "::endgroup::"

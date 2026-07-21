@@ -33,7 +33,7 @@ symbolic-demangle = { version = "13.6", default-features = false, features = ["c
 symbolic-common = "13.6"
 debugid = "0.8"
 uuid = "1"
-lru = "0.16"
+lru = "0.18"
 memmap2 = "0.9"
 glob = "0.3"
 serde = { version = "1", features = ["derive"] }

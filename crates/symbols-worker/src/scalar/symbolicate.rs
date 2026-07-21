@@ -1,16 +1,13 @@
 //! `symbolicate(build_id, address) -> STRUCT(...)` — the scalar convenience: the
 //! physical frame's symbol with the inline chain collapsed into the `inlined`
-//! LIST (innermost-first). Same resolution as `resolve`, one row out.
+//! LIST (innermost-first). Map it over a frame column for bulk symbolication.
 
 use std::sync::Arc;
 
 use arrow_array::{ArrayRef, Int32Array, RecordBatch, StringArray};
 use arrow_schema::{DataType, Field};
 use symbols_core::frame::ResolvedFrame;
-use vgi::{
-    ArgSpec, BindParams, BindResponse, FunctionExample, FunctionMetadata, ProcessParams,
-    ScalarFunction,
-};
+use vgi::{ArgSpec, BindParams, BindResponse, FunctionMetadata, ProcessParams, ScalarFunction};
 use vgi_rpc::{Result, RpcError};
 
 use crate::schema::{
@@ -30,49 +27,40 @@ impl ScalarFunction for Symbolicate {
     fn metadata(&self) -> FunctionMetadata {
         let mut tags = crate::meta::object_tags(
             "Symbolicate Frame (scalar)",
-            "Resolve a single `(build_id, address)` stack frame to a STRUCT with the physical \
+            "Resolve a single `(build_id, address)` stack frame to a `STRUCT` with the physical \
              frame's `function` / `file` / `line`, the inlined call chain collapsed into an \
-             `inlined` LIST<STRUCT(function, file, line)> (innermost-first), and the `module`, \
-             `debug_id`, and `status` that answered. Same resolution as the `resolve` table \
-             function, but one row out — the convenience for resolving one frame in a scalar \
-             context. `build_id` is the normalized debug-id or raw build-id hex; `address` is the \
-             MODULE-RELATIVE virtual address (caller subtracts the load base). `status` is 'ok', \
-             'not_found' (no module), 'no_line' (no line info), or 'error:<kind>'. Backed by the \
-             persistent build-id-keyed cache.",
-            "Resolve one `(build_id, address)` to a STRUCT(function, file, line, inlined, module, \
-             debug_id, status); `inlined` is the innermost-first inline chain. `address` is \
-             module-relative. Use `resolve` for the inline-expanded table form.",
+             `inlined` `LIST(STRUCT(function, file, line))` (innermost-first), and the `module`, \
+             `debug_id`, and `status` that answered. One row out — the convenience for resolving \
+             one frame in a scalar context; map it over a frame column to symbolicate in bulk, and \
+             `UNNEST` the `inlined` list for inline-expanded rows. `build_id` is the normalized \
+             debug-id or raw build-id hex; `address` is the MODULE-RELATIVE virtual address \
+             (caller subtracts the load base). `status` is 'ok', 'not_found' (no module), \
+             'no_line' (no line info), or 'error:<kind>'. Backed by the persistent build-id-keyed \
+             cache.",
+            "Resolve one `(build_id, address)` to a `STRUCT(function, file, line, inlined, module, \
+             debug_id, status)`; `inlined` is the innermost-first inline chain. `address` is \
+             module-relative. Map it over a frame column to symbolicate in bulk; `UNNEST` the \
+             `inlined` list for inline-expanded rows.",
             "symbolicate, resolve, stack frame, function, file, line, inline, addr2line, dwarf, \
              pdb, build_id, address, crash, profiling",
         );
         tags.push(("vgi.category".into(), "Resolution".into()));
+        // NOTE: `symbolicate` is a scalar returning a STRUCT, so it carries no
+        // `vgi.result_columns_schema` (that tag is for table functions). The STRUCT
+        // fields (function/file/line/inlined/module/debug_id/status) are documented
+        // in `vgi.doc_llm` / `vgi.doc_md` above. The example is carried as a
+        // described `vgi.example_queries` entry (the native examples carrier drops
+        // descriptions → VGI515).
         tags.push((
-            "vgi.result_columns_md".into(),
-            "Returns a single STRUCT column:\n\n\
-             | field | type | description |\n\
-             |---|---|---|\n\
-             | `function` | VARCHAR | Physical frame's demangled function name. |\n\
-             | `file` | VARCHAR | Source file. |\n\
-             | `line` | INTEGER | 1-based source line. |\n\
-             | `inlined` | LIST<STRUCT(function,file,line)> | Inline chain, innermost-first. |\n\
-             | `module` | VARCHAR | Debug file that answered. |\n\
-             | `debug_id` | VARCHAR | Normalized cache key that answered. |\n\
-             | `status` | VARCHAR | 'ok' / 'not_found' / 'no_line' / 'error:<kind>'. |"
+            "vgi.example_queries".into(),
+            r#"[{"description":"Symbolicate one module-relative frame (build-id 'e4c1f2b9', address 303600) and read the resolved function name and status off the returned struct; status is 'not_found' until a matching symbol source is registered with add_source.","sql":"SELECT (symbols.main.symbolicate('e4c1f2b9', 303600)).function AS function, (symbols.main.symbolicate('e4c1f2b9', 303600)).status AS status"}]"#
                 .into(),
         ));
         FunctionMetadata {
             description: "Resolve one (build_id, address) frame to a STRUCT with the inline chain \
                           collapsed into a list"
                 .into(),
-            examples: vec![FunctionExample {
-                sql: "SELECT symbols.main.symbolicate('e4c1f2b9', 303600) AS frame;".into(),
-                description: "Resolve one module-relative frame (build-id 'e4c1f2b9', address \
-                              303600) to a STRUCT of function/file/line plus the collapsed inline \
-                              chain; the STRUCT's `status` is 'not_found' until a matching symbol \
-                              source is registered with `add_source`."
-                    .into(),
-                expected_output: None,
-            }],
+            examples: Vec::new(),
             tags,
             ..Default::default()
         }

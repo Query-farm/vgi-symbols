@@ -4,15 +4,17 @@
 //!
 //! A standalone binary DuckDB launches and talks to over Apache Arrow IPC. It
 //! brings native (DWARF/PDB) symbolication to SQL under the catalog `symbols`,
-//! schema `main`, as a bulk JOIN over a column of `(build_id, address)` frames
-//! backed by a persistent, build-id-keyed debug-info cache:
+//! schema `main`, as scalar resolution over a column of `(build_id, address)`
+//! frames backed by a persistent, build-id-keyed debug-info cache:
 //!
 //! - `symbols.main.symbolicate(build_id, address)` — one frame → STRUCT (inline chain collapsed)
-//! - `symbols.main.resolve(build_id, address)` — LATERAL: inline-expanded rows (the JOIN surface)
-//! - `symbols.main.resolve_batch(frames)` — a whole LIST of frames in one pass
 //! - `symbols.main.function_name` / `inline_frames` / `demangle` — scalar conveniences
 //! - `symbols.main.module_info` / `cache_status` / `cache_evict` — inspect modules + cache
 //! - `symbols.add_source` / `sources` / `drop_source` — where debug files come from
+//!
+//! Bulk symbolication is done by mapping the scalar `symbolicate` / `function_name`
+//! over a frame column (and `UNNEST`-ing the `inlined` list for inline-expanded
+//! rows) — the working vectorized path under the current DuckDB + vgi binder.
 
 mod catalog;
 mod meta;

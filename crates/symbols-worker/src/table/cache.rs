@@ -9,7 +9,7 @@ use arrow_array::builder::{
 use arrow_array::{ArrayRef, Int64Array, RecordBatch};
 use arrow_schema::{DataType, Field, Schema, SchemaRef, TimeUnit};
 use vgi::table_function::{TableFunction, TableProducer};
-use vgi::{ArgSpec, BindParams, BindResponse, FunctionExample, FunctionMetadata, ProcessParams};
+use vgi::{ArgSpec, BindParams, BindResponse, FunctionMetadata, ProcessParams};
 use vgi_rpc::{OutputCollector, Result, RpcError};
 
 use crate::state::with_state;
@@ -59,18 +59,21 @@ impl TableFunction for CacheStatus {
         );
         tags.push(("vgi.category".into(), "Cache".into()));
         tags.push((
-            "vgi.result_columns_md".into(),
-            "One row per known debug-id (resident or manifest-only):\n\n\
-             | column | type | description |\n\
-             |---|---|---|\n\
-             | `debug_id` | VARCHAR | Normalized cache key. |\n\
-             | `name` | VARCHAR | Debug file name. |\n\
-             | `format` / `arch` | VARCHAR | Container format + CPU arch. |\n\
-             | `bytes_resident` | BIGINT | Resident footprint (0 if evicted). |\n\
-             | `rows_resolved` | BIGINT | Cumulative addresses resolved. |\n\
-             | `last_used` | TIMESTAMPTZ | Last use. |\n\
-             | `origin` | VARCHAR | Provenance (dir/glob/…). |\n\
-             | `resident` | BOOLEAN | Currently resident in RAM. |"
+            "vgi.result_columns_schema".into(),
+            // Static result schema (VGI307/VGI321), in `status_schema()` column
+            // order so it matches DESCRIBE (VGI910). `last_used` is a
+            // timezone-aware timestamp (TIMESTAMP WITH TIME ZONE).
+            r#"[
+  {"name": "debug_id", "type": "VARCHAR", "description": "Normalized debug-id cache key."},
+  {"name": "name", "type": "VARCHAR", "description": "Debug file name."},
+  {"name": "format", "type": "VARCHAR", "description": "Container format (ELF / MachO / PE / PDB / …)."},
+  {"name": "arch", "type": "VARCHAR", "description": "CPU architecture."},
+  {"name": "bytes_resident", "type": "BIGINT", "description": "Resident footprint in bytes (0 if evicted / manifest-only)."},
+  {"name": "rows_resolved", "type": "BIGINT", "description": "Cumulative addresses resolved against this module."},
+  {"name": "last_used", "type": "TIMESTAMPTZ", "description": "Timestamp of last use, or NULL if never used."},
+  {"name": "origin", "type": "VARCHAR", "description": "Provenance the module is (re)parsed from (dir / glob / …), or NULL."},
+  {"name": "resident", "type": "BOOLEAN", "description": "True if the parsed module is currently resident in RAM."}
+]"#
                 .into(),
         ));
         tags.push((
@@ -93,7 +96,8 @@ impl TableFunction for CacheStatus {
             "boolean",
             "When true, return only modules currently resident in RAM and skip evicted / \
              manifest-only (and proven-missing) entries. Defaults to false (every known debug-id).",
-        )]
+        )
+        .with_choices([true, false])]
     }
     fn on_bind(&self, _params: &BindParams) -> Result<BindResponse> {
         Ok(BindResponse {
@@ -198,26 +202,24 @@ impl TableFunction for CacheEvict {
         );
         tags.push(("vgi.category".into(), "Cache".into()));
         tags.push((
-            "vgi.result_columns_md".into(),
-            "Returns a single row:\n\n\
-             | column | type | description |\n\
-             |---|---|---|\n\
-             | `bytes_freed` | BIGINT | Resident bytes reclaimed by the eviction (0 if the module \
-             was not resident, or the cache was already empty). |"
+            "vgi.result_columns_schema".into(),
+            r#"[
+  {"name": "bytes_freed", "type": "BIGINT", "description": "Resident bytes reclaimed by the eviction (0 if the module was not resident, or the cache was already empty)."}
+]"#
+                .into(),
+        ));
+        // Described example carried as `vgi.example_queries` (the native examples
+        // carrier drops descriptions → VGI515).
+        tags.push((
+            "vgi.example_queries".into(),
+            r#"[{"description":"Clear the entire resident cache (keeping the manifest) and report the bytes reclaimed; 0 on a cold worker with nothing resident.","sql":"SELECT bytes_freed FROM symbols.main.cache_evict()"}]"#
                 .into(),
         ));
         FunctionMetadata {
             description: "Force-evict one module (or the whole resident set) from the cache; \
                           returns bytes freed"
                 .into(),
-            examples: vec![FunctionExample {
-                sql: "SELECT bytes_freed FROM symbols.main.cache_evict();".into(),
-                description:
-                    "Clear the entire resident cache (keeping the manifest) and report the \
-                              bytes reclaimed."
-                        .into(),
-                expected_output: None,
-            }],
+            examples: Vec::new(),
             tags,
             ..Default::default()
         }

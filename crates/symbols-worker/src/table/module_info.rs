@@ -33,38 +33,67 @@ fn schema() -> SchemaRef {
     ]))
 }
 
-fn columns_md() -> (String, String, String, String) {
+/// The common description of what one `module_info` row reports; each overload
+/// prepends its own one-argument signature (BLOB vs path) so the doc reflects the
+/// actual parameter list (VGI180).
+const ROW_TAIL: &str = "returns one row describing the container `format` ('ELF' / 'MachO' / 'PE' \
+     / 'PDB' / 'dSYM' / 'Breakpad'), the CPU `arch`, the raw per-format `build_id` hex and the \
+     normalized `debug_id` cache key (so you can check whether this file matches the frames you \
+     have), the `code_id`, the `has_dwarf` / `has_pdb` / `has_line_table` capability flags, the \
+     `symbol_count` / `file_count` / `byte_size`, and the image's preferred `image_base`. It is \
+     the triage tool — 'does this file actually have line info, and does its debug-id match?' — \
+     answered header-only, without paying the parse-into-cache cost. Zero rows if the input is \
+     not a recognizable debug file.";
+
+/// Per-overload (llm, md, keywords). `blob` selects the BLOB signature copy.
+fn docs(blob: bool) -> (String, String, String) {
+    let (llm, md) = if blob {
+        (
+            format!("Inspect a debug file whose bytes you pass inline as a single BLOB argument \
+                 (e.g. `read_blob('/path/libfoo.so.debug')`) without resolving any frames: {ROW_TAIL}"),
+            "Inspect debug-file bytes given inline as a BLOB (no resolve): one row with format, \
+             arch, build_id, debug_id, code_id, has_dwarf/has_pdb/has_line_table, symbol_count, \
+             file_count, byte_size, image_base — or zero rows if the bytes are not a debug file."
+                .to_string(),
+        )
+    } else {
+        (
+            format!(
+                "Inspect a debug file named by a single filesystem `path` argument without \
+                 resolving any frames: {ROW_TAIL}"
+            ),
+            "Inspect a debug file by filesystem path (no resolve): one row with format, arch, \
+             build_id, debug_id, code_id, has_dwarf/has_pdb/has_line_table, symbol_count, \
+             file_count, byte_size, image_base — or zero rows if the path is missing or not a \
+             debug file."
+                .to_string(),
+        )
+    };
     (
-        "Inspect a debug file (passed inline as a BLOB or by file path) without resolving any \
-         frames: returns one row describing the container `format` ('ELF' / 'MachO' / 'PE' / \
-         'PDB' / 'dSYM' / 'Breakpad'), the CPU `arch`, the raw per-format `build_id` hex and the \
-         normalized `debug_id` cache key (so you can check whether this file matches the frames you \
-         have), the `code_id`, the `has_dwarf` / `has_pdb` / `has_line_table` capability flags, the \
-         `symbol_count` / `file_count` / `byte_size`, and the image's preferred `image_base`. The \
-         triage tool: 'does this file actually have line info, and does its debug-id match?' \
-         answered without paying the parse-into-cache cost."
-            .to_string(),
-        "Inspect a debug file by BLOB or path without resolving: one row with format, arch, \
-         build_id, debug_id, code_id, has_dwarf/has_pdb/has_line_table, symbol_count, file_count, \
-         byte_size, image_base."
-            .to_string(),
+        llm,
+        md,
         "module_info, inspect, triage, debug file, ELF, MachO, PE, PDB, dSYM, build_id, debug_id, \
          has line table, symbol count"
             .to_string(),
-        "Returns one row:\n\n\
-         | column | type | description |\n\
-         |---|---|---|\n\
-         | `format` | VARCHAR | ELF / MachO / PE / PDB / dSYM / Breakpad. |\n\
-         | `arch` | VARCHAR | CPU architecture. |\n\
-         | `build_id` | VARCHAR | Raw per-format identifier (hex). |\n\
-         | `debug_id` | VARCHAR | Normalized cache key. |\n\
-         | `code_id` | VARCHAR | Code-file identifier. |\n\
-         | `has_dwarf` / `has_pdb` / `has_line_table` | BOOLEAN | Capability flags. |\n\
-         | `symbol_count` / `file_count` / `byte_size` | BIGINT | Counts + size. |\n\
-         | `image_base` | UBIGINT | Image's preferred load base. |"
-            .to_string(),
     )
 }
+
+/// Structured static result schema (VGI307/VGI321), in the `schema()` column order
+/// so it matches DESCRIBE (VGI910). Both overloads return the same shape.
+const RESULT_COLUMNS_SCHEMA: &str = r#"[
+  {"name": "format", "type": "VARCHAR", "description": "Container format: ELF / MachO / PE / PDB / dSYM / Breakpad."},
+  {"name": "arch", "type": "VARCHAR", "description": "CPU architecture, e.g. x86_64 / aarch64."},
+  {"name": "build_id", "type": "VARCHAR", "description": "Raw per-format build identifier (hex), or NULL."},
+  {"name": "debug_id", "type": "VARCHAR", "description": "Normalized debug-id cache key, or NULL."},
+  {"name": "code_id", "type": "VARCHAR", "description": "Code-file identifier, or NULL."},
+  {"name": "has_dwarf", "type": "BOOLEAN", "description": "True if the file carries DWARF debug info."},
+  {"name": "has_pdb", "type": "BOOLEAN", "description": "True if the file is / carries a Windows PDB."},
+  {"name": "has_line_table", "type": "BOOLEAN", "description": "True if line-number info is present."},
+  {"name": "symbol_count", "type": "BIGINT", "description": "Number of symbols discovered."},
+  {"name": "file_count", "type": "BIGINT", "description": "Number of source files referenced."},
+  {"name": "byte_size", "type": "BIGINT", "description": "Size of the debug file in bytes."},
+  {"name": "image_base", "type": "UBIGINT", "description": "The image's preferred load base."}
+]"#;
 
 /// One producer that emits a single `module_info` row (or an empty result if the
 /// file is not a recognizable debug file).
@@ -144,10 +173,13 @@ impl TableFunction for ModuleInfoBlob {
         "module_info"
     }
     fn metadata(&self) -> FunctionMetadata {
-        let (llm, md, kw, cols) = columns_md();
+        let (llm, md, kw) = docs(true);
         let mut tags = crate::meta::object_tags("Module Info (BLOB)", &llm, &md, &kw);
         tags.push(("vgi.category".into(), "Modules".into()));
-        tags.push(("vgi.result_columns_md".into(), cols));
+        tags.push((
+            "vgi.result_columns_schema".into(),
+            RESULT_COLUMNS_SCHEMA.into(),
+        ));
         // Inline-BLOB overload: in practice pass the file's bytes, e.g.
         // `module_info(read_blob('/srv/debug/libssl.so.debug'))`. The runnable
         // example uses a short BLOB literal so it is self-contained; bytes that
@@ -201,10 +233,13 @@ impl TableFunction for ModuleInfoPath {
         "module_info"
     }
     fn metadata(&self) -> FunctionMetadata {
-        let (llm, md, kw, cols) = columns_md();
+        let (llm, md, kw) = docs(false);
         let mut tags = crate::meta::object_tags("Module Info (path)", &llm, &md, &kw);
         tags.push(("vgi.category".into(), "Modules".into()));
-        tags.push(("vgi.result_columns_md".into(), cols));
+        tags.push((
+            "vgi.result_columns_schema".into(),
+            RESULT_COLUMNS_SCHEMA.into(),
+        ));
         // Path overload: returns one row describing the file, or zero rows if the
         // path is missing or not a recognizable debug file (never an error). The
         // example uses a placeholder path so it runs standalone (zero rows).

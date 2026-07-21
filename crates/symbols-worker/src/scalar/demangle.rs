@@ -5,10 +5,7 @@ use arrow_array::cast::AsArray;
 use arrow_array::{Array, ArrayRef, RecordBatch, StringArray};
 use arrow_schema::DataType;
 use symbols_core::demangle::{demangle, DemangleLang};
-use vgi::{
-    ArgSpec, BindParams, BindResponse, FunctionExample, FunctionMetadata, ProcessParams,
-    ScalarFunction,
-};
+use vgi::{ArgSpec, BindParams, BindResponse, FunctionMetadata, ProcessParams, ScalarFunction};
 use vgi_rpc::{Result, RpcError};
 
 /// `demangle`. DuckDB scalars take only positional args, so the optional `lang`
@@ -50,18 +47,14 @@ impl ScalarFunction for Demangle {
         );
         tags.push(("vgi.category".into(), "Demangling".into()));
         tags.push((
-            "vgi.executable_examples".into(),
-            r#"[{"description":"Demangle an Itanium C++ symbol.","sql":"SELECT symbols.main.demangle('_ZN3foo3barEv') AS name"}]"#
+            "vgi.example_queries".into(),
+            r#"[{"description":"Demangle an Itanium C++ linkage name into its readable form ('foo::bar').","sql":"SELECT symbols.main.demangle('_ZN3foo3barEv') AS name"}]"#
                 .into(),
         ));
         FunctionMetadata {
             description: description.into(),
             return_type: Some(DataType::Utf8),
-            examples: vec![FunctionExample {
-                sql: "SELECT symbols.main.demangle('_ZN3foo3barEv');".into(),
-                description: "Demangle an Itanium C++ symbol to 'foo::bar'.".into(),
-                expected_output: None,
-            }],
+            examples: Vec::new(),
             tags,
             ..Default::default()
         }
@@ -75,13 +68,17 @@ impl ScalarFunction for Demangle {
              returned unchanged.",
         )];
         if self.with_lang {
-            specs.push(ArgSpec::const_arg(
-                "lang",
-                1,
-                "varchar",
-                "Mangling scheme: 'auto' (default — detect from the string), 'cpp', 'rust', \
-                 'msvc', or 'swift'.",
-            ));
+            specs.push(
+                ArgSpec::const_arg(
+                    "lang",
+                    1,
+                    "varchar",
+                    "Mangling scheme: 'auto' (default — detect from the string), 'cpp', 'rust', \
+                     'msvc', or 'swift'.",
+                )
+                // Closed vocabulary (VGI317), matching `DemangleLang::parse`.
+                .with_choices(["auto", "cpp", "rust", "msvc", "swift"]),
+            );
         }
         specs
     }

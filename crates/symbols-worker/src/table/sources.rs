@@ -9,7 +9,7 @@ use arrow_array::builder::{BooleanBuilder, StringBuilder};
 use arrow_array::{ArrayRef, BooleanArray, RecordBatch, StringArray};
 use arrow_schema::{DataType, Field, Schema, SchemaRef};
 use vgi::table_function::{TableFunction, TableProducer};
-use vgi::{ArgSpec, BindParams, BindResponse, FunctionExample, FunctionMetadata, ProcessParams};
+use vgi::{ArgSpec, BindParams, BindResponse, FunctionMetadata, ProcessParams};
 use vgi_rpc::{OutputCollector, Result, RpcError};
 
 use crate::state::with_state;
@@ -24,7 +24,7 @@ impl TableFunction for AddSource {
     fn metadata(&self) -> FunctionMetadata {
         let mut tags = crate::meta::object_tags(
             "Add Symbol Source",
-            "Register where debug files live so `resolve`/`symbolicate` can find them, returning \
+            "Register where debug files live so `symbolicate` can find them, returning \
              the assigned `source_id`. Sources are tried in the order added; the first debug-id \
              match wins. Local, zero-egress kinds: `dir` (`path =>` a directory of symbol files) \
              and `glob` (`path =>` a recursive glob like '/builds/**/*.{debug,pdb,dSYM}'). Remote, \
@@ -40,12 +40,10 @@ impl TableFunction for AddSource {
         );
         tags.push(("vgi.category".into(), "Sources".into()));
         tags.push((
-            "vgi.result_columns_md".into(),
-            "Returns a single row:\n\n\
-             | column | type | description |\n\
-             |---|---|---|\n\
-             | `source_id` | VARCHAR | The id assigned to the new source (e.g. `src0`). Pass it to \
-             `drop_source` to remove it. |"
+            "vgi.result_columns_schema".into(),
+            r#"[
+  {"name": "source_id", "type": "VARCHAR", "description": "The id assigned to the new source (e.g. src0). Pass it to drop_source to remove it."}
+]"#
                 .into(),
         ));
         tags.push((
@@ -90,7 +88,8 @@ impl TableFunction for AddSource {
                 "boolean",
                 "Whether the source is active. Local sources default true; remote sources default \
                  false (must be explicitly enabled to allow egress).",
-            ),
+            )
+            .with_choices([true, false]),
             ArgSpec::const_arg(
                 "secret",
                 -1,
@@ -150,15 +149,14 @@ impl TableFunction for ListSources {
         );
         tags.push(("vgi.category".into(), "Sources".into()));
         tags.push((
-            "vgi.result_columns_md".into(),
-            "One row per registered source (resolve order):\n\n\
-             | column | type | description |\n\
-             |---|---|---|\n\
-             | `source_id` | VARCHAR | Opaque id from `add_source`. |\n\
-             | `kind` | VARCHAR | dir / glob / debuginfod / s3 / http. |\n\
-             | `location` | VARCHAR | Path / url / bucket. |\n\
-             | `enabled` | BOOLEAN | Whether the source is active. |\n\
-             | `egress` | BOOLEAN | Whether using it crosses the trust boundary. |"
+            "vgi.result_columns_schema".into(),
+            r#"[
+  {"name": "source_id", "type": "VARCHAR", "description": "Opaque id from add_source."},
+  {"name": "kind", "type": "VARCHAR", "description": "Source kind: dir / glob / debuginfod / s3 / http."},
+  {"name": "location", "type": "VARCHAR", "description": "The source's locator: path / url / bucket."},
+  {"name": "enabled", "type": "BOOLEAN", "description": "True if the source is active."},
+  {"name": "egress", "type": "BOOLEAN", "description": "True if using the source crosses the trust boundary (remote)."}
+]"#
                 .into(),
         ));
         tags.push((
@@ -182,7 +180,8 @@ impl TableFunction for ListSources {
             "boolean",
             "When true, return only sources that are currently enabled (active). Defaults to false \
              (every registered source, enabled or not).",
-        )]
+        )
+        .with_choices([true, false])]
     }
     fn on_bind(&self, _params: &BindParams) -> Result<BindResponse> {
         Ok(BindResponse {
@@ -264,25 +263,23 @@ impl TableFunction for DropSource {
         );
         tags.push(("vgi.category".into(), "Sources".into()));
         tags.push((
-            "vgi.result_columns_md".into(),
-            "Returns a single row:\n\n\
-             | column | type | description |\n\
-             |---|---|---|\n\
-             | `dropped` | BOOLEAN | True if a source with that `source_id` existed and was \
-             removed; false if no such source was registered. |"
+            "vgi.result_columns_schema".into(),
+            r#"[
+  {"name": "dropped", "type": "BOOLEAN", "description": "True if a source with that source_id existed and was removed; false if no such source was registered."}
+]"#
+                .into(),
+        ));
+        // Described example carried as `vgi.example_queries` (the native examples
+        // carrier drops descriptions → VGI515).
+        tags.push((
+            "vgi.example_queries".into(),
+            r#"[{"description":"Deregister the symbol source with id 'src0'; dropped is false if no such source was registered.","sql":"SELECT dropped FROM symbols.main.drop_source('src0')"}]"#
                 .into(),
         ));
         FunctionMetadata {
             description: "Remove a registered symbol source by id; returns whether one was removed"
                 .into(),
-            examples: vec![FunctionExample {
-                sql: "SELECT dropped FROM symbols.main.drop_source('src0');".into(),
-                description:
-                    "Deregister the symbol source with id 'src0'; `dropped` is false if no \
-                              such source was registered."
-                        .into(),
-                expected_output: None,
-            }],
+            examples: Vec::new(),
             tags,
             ..Default::default()
         }

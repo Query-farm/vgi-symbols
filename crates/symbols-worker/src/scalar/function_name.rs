@@ -6,10 +6,7 @@ use std::sync::Arc;
 
 use arrow_array::{ArrayRef, RecordBatch, StringArray};
 use arrow_schema::DataType;
-use vgi::{
-    ArgSpec, BindParams, BindResponse, FunctionExample, FunctionMetadata, ProcessParams,
-    ScalarFunction,
-};
+use vgi::{ArgSpec, BindParams, BindResponse, FunctionMetadata, ProcessParams, ScalarFunction};
 use vgi_rpc::{Result, RpcError};
 
 use crate::state::with_state;
@@ -36,23 +33,23 @@ impl ScalarFunction for FunctionName {
              a column of millions of addresses parses each module once.",
             "Resolve `(build_id, address)` to the innermost demangled function name (NULL if not \
              found). `address` is module-relative (caller subtracts the load base). Cheaper than \
-             `resolve`/`symbolicate` — no file/line/inline.",
+             `symbolicate` — no file/line/inline.",
             "function name, symbolicate, resolve, addr2line, flamegraph leaf, group by, crash \
              bucket, build_id, address",
         );
         tags.push(("vgi.category".into(), "Resolution".into()));
+        // Described example carried as `vgi.example_queries` (the native examples
+        // carrier drops descriptions → VGI515).
+        tags.push((
+            "vgi.example_queries".into(),
+            r#"[{"description":"Resolve a frame (build-id 'e4c1f2b9', module-relative address 303600) to just its innermost function name; returns NULL until a symbol source for that build-id is registered with add_source.","sql":"SELECT symbols.main.function_name('e4c1f2b9', 303600) AS function"}]"#
+                .into(),
+        ));
         FunctionMetadata {
             description: "Resolve a (build_id, address) frame to the innermost function name only"
                 .into(),
             return_type: Some(DataType::Utf8),
-            examples: vec![FunctionExample {
-                sql: "SELECT symbols.main.function_name('e4c1f2b9', 303600) AS function;".into(),
-                description: "Resolve a frame (build-id 'e4c1f2b9', module-relative address \
-                              303600) to just its innermost function name; returns NULL until a \
-                              symbol source for that build-id is registered with `add_source`."
-                    .into(),
-                expected_output: None,
-            }],
+            examples: Vec::new(),
             tags,
             ..Default::default()
         }

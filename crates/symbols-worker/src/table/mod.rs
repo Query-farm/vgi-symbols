@@ -1,19 +1,13 @@
-//! Table, table-in-out, and config functions exposed by the symbols worker.
+//! Table and config functions exposed by the symbols worker.
 
 mod cache;
 mod module_info;
-mod resolve;
-mod resolve_batch;
 mod sources;
 
 use vgi::Worker;
 
-/// Register every table / table-in-out / config function on the worker.
+/// Register every table / config function on the worker.
 pub fn register(worker: &mut Worker) {
-    // The LATERAL / batch resolve surface (per-row column inputs → many rows).
-    worker.register_table_in_out(resolve::Resolve);
-    worker.register_table_in_out(resolve_batch::ResolveBatch);
-
     // Module inspection (two overloads: BLOB and path).
     worker.register_table(module_info::ModuleInfoBlob);
     worker.register_table(module_info::ModuleInfoPath);

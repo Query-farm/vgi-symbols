@@ -3,10 +3,7 @@
 
 use arrow_array::{ArrayRef, RecordBatch};
 use symbols_core::frame::ResolvedFrame;
-use vgi::{
-    ArgSpec, BindParams, BindResponse, FunctionExample, FunctionMetadata, ProcessParams,
-    ScalarFunction,
-};
+use vgi::{ArgSpec, BindParams, BindResponse, FunctionMetadata, ProcessParams, ScalarFunction};
 use vgi_rpc::{Result, RpcError};
 
 use crate::schema::{build_inline_list, inline_frames_list_type};
@@ -25,32 +22,31 @@ impl ScalarFunction for InlineFrames {
         let mut tags = crate::meta::object_tags(
             "Inlined Call Chain at an Address",
             "Resolve a `(build_id, address)` frame to just its inlined call chain — a \
-             LIST<STRUCT(function, file, line)> ordered innermost-first, **excluding** the physical \
-             frame. Empty list when the address has no inlining (or no symbols). Useful to \
-             reconstruct a logically-deeper stack than the captured frame count. `build_id` is the \
-             normalized debug-id or raw build-id hex; `address` is the MODULE-RELATIVE virtual \
+             `LIST(STRUCT(function, file, line))` ordered innermost-first, **excluding** the \
+             physical frame. Empty list when the address has no inlining (or no symbols). Useful \
+             to reconstruct a logically-deeper stack than the captured frame count. `build_id` is \
+             the normalized debug-id or raw build-id hex; `address` is the MODULE-RELATIVE virtual \
              address (caller subtracts the load base). Backed by the persistent build-id-keyed \
              cache.",
-            "Resolve `(build_id, address)` to its inline chain only: LIST<STRUCT(function, file, \
-             line)>, innermost-first, without the physical frame. `address` is module-relative.",
+            "Resolve `(build_id, address)` to its inline chain only: `LIST(STRUCT(function, file, \
+             line))`, innermost-first, without the physical frame. `address` is module-relative.",
             "inline frames, inlining, inline chain, symbolicate, dwarf, pdb, stack, build_id, \
              address",
         );
         tags.push(("vgi.category".into(), "Resolution".into()));
+        // Described example carried as `vgi.example_queries` (the native examples
+        // carrier drops descriptions → VGI515).
+        tags.push((
+            "vgi.example_queries".into(),
+            r#"[{"description":"Get the length of the inlined call chain (innermost-first, physical frame excluded) at module-relative address 303600 in build-id 'e4c1f2b9'; 0 until the address has both symbols and inlining.","sql":"SELECT length(symbols.main.inline_frames('e4c1f2b9', 303600)) AS inline_depth"}]"#
+                .into(),
+        ));
         FunctionMetadata {
             description: "Resolve a (build_id, address) frame to its inline chain only (a list of \
                           STRUCT(function, file, line))"
                 .into(),
             return_type: Some(inline_frames_list_type()),
-            examples: vec![FunctionExample {
-                sql: "SELECT symbols.main.inline_frames('e4c1f2b9', 303600) AS inline_chain;"
-                    .into(),
-                description: "Get just the inlined call chain (innermost-first, physical frame \
-                              excluded) at module-relative address 303600 in build-id 'e4c1f2b9'; \
-                              an empty list until the address has both symbols and inlining."
-                    .into(),
-                expected_output: None,
-            }],
+            examples: Vec::new(),
             tags,
             ..Default::default()
         }

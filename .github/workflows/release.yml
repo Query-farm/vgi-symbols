@@ -26,7 +26,14 @@ permissions:
 
 jobs:
   # Gate the release on the same unit + SQLLogic e2e suite as push/PR.
+  # Grant the permissions ci.yml's jobs need (the supply-chain `audit` job posts a
+  # check-run → checks: write). A called workflow's token is capped by this job's
+  # grant, and the release top-level default (contents: read) alone would make the
+  # audit job's escalation exceed the cap → the whole run fails to start.
   ci:
+    permissions:
+      contents: read
+      checks: write
     uses: ./.github/workflows/ci.yml
 
   release:

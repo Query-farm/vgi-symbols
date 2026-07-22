@@ -92,7 +92,6 @@ jobs:
       - name: vgi-lint
         uses: Query-farm/vgi-lint-check@v1
         with:
-          version: "0.73.0"
           location: "${{ github.workspace }}/target/release/symbols-worker"
           fail-on: info
 

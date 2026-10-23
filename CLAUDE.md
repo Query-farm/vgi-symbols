@@ -20,7 +20,7 @@ wave: `vgi-minidump`, `vgi-pprof`, and `vgi-perf` feed `(build_id, address)` int
 it. Keep scope tight to that — resist feature sprawl (unwinding, minidump
 parsing, load-map/ASLR resolution, a symbol-store UI are all out of scope).
 
-Built on the published VGI Rust SDK (`vgi = "0.9.5"` from crates.io), arrow 59.
+Built on the published VGI Rust SDK (`vgi = "0.46"` from crates.io), arrow 60.
 Modeled on `../vgi-fixedformat`. The repo builds standalone — no local SDK
 checkout. **Worker license: Query Farm Source-Available** (a stateful compute
 asset, not a pure-permissive utility) — all *dependencies* are MIT/Apache-2.0.

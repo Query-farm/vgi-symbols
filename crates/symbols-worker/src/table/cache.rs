@@ -127,6 +127,11 @@ struct StatusProducer {
 }
 
 impl TableProducer for StatusProducer {
+    // Emits a single batch, so there is no cursor to resume.
+    fn resume_supported(&self) -> bool {
+        false
+    }
+
     fn next_batch(&mut self, _out: &mut OutputCollector) -> Result<Option<RecordBatch>> {
         let Some(rows) = self.rows.take() else {
             return Ok(None);
@@ -260,6 +265,11 @@ struct OneI64 {
 }
 
 impl TableProducer for OneI64 {
+    // Emits a single batch, so there is no cursor to resume.
+    fn resume_supported(&self) -> bool {
+        false
+    }
+
     fn next_batch(&mut self, _out: &mut OutputCollector) -> Result<Option<RecordBatch>> {
         let Some(v) = self.value.take() else {
             return Ok(None);

@@ -85,19 +85,22 @@ pub fn catalog_metadata(name: &str) -> CatalogModel {
                 //  * `register_dir_source` mutates state (it calls `add_source`),
                 //    so it is declared LAST — the earlier `sources` count stays
                 //    deterministic under the sequential (`--ai-concurrency 1`) run.
+                // Only name + prompt are published here; the graders (reference_sql /
+                // check_sql / ignore_column_names) live in vgi-agent-tests.yaml at
+                // the repo root so the graded agent never sees them (VGI416).
                 r#"[
-  {"name":"demangle_cpp_symbol","prompt":"Using the worker's demangle function, turn the mangled Itanium C++ linkage name '_ZN3foo3barEv' into its readable name (it should read 'foo::bar'). Return only the single demangled string.","reference_sql":"SELECT symbols.main.demangle('_ZN3foo3barEv')","ignore_column_names":true},
-  {"name":"demangle_passthrough","prompt":"The demangle function returns any name that is not actually mangled unchanged. Show what it returns for the plain name 'main'.","reference_sql":"SELECT symbols.main.demangle('main')","ignore_column_names":true},
-  {"name":"symbolicate_cold_status","prompt":"This worker has no symbol sources registered yet, so nothing can be resolved. Symbolicate the frame with build_id 'deadbeef' and module-relative address 4096 and report just the resolution status of the result (it will be 'not_found' because no matching debug file is available).","reference_sql":"SELECT (symbols.main.symbolicate('deadbeef', 4096)).status","ignore_column_names":true},
-  {"name":"function_name_cold","prompt":"With no symbol sources registered, resolving any address yields no name. Resolve the innermost function name for build_id 'deadbeef' at module-relative address 4096 — the result should be NULL.","reference_sql":"SELECT symbols.main.function_name('deadbeef', 4096)","ignore_column_names":true},
-  {"name":"inline_frames_empty_cold","prompt":"The inline_frames function returns just the inlined call chain (a list) at a frame. With no symbol sources registered, the chain for build_id 'deadbeef' at module-relative address 4096 is empty. Report the length of that list (it should be 0).","reference_sql":"SELECT length(symbols.main.inline_frames('deadbeef', 4096))","ignore_column_names":true},
-  {"name":"module_info_missing_path","prompt":"Use the module_info table function to inspect the debug file at the path '/no/such/file.debug'. Because that path does not exist, module_info returns no rows. Report how many rows it returns (it should be 0).","reference_sql":"SELECT count(*) FROM symbols.main.module_info('/no/such/file.debug')","ignore_column_names":true},
-  {"name":"local_source_kinds","prompt":"The worker exposes a browsable reference table of the symbol-source kinds add_source accepts. Using it, count how many source kinds are local (they do not cross the trust boundary, i.e. egress is false). Return the count.","reference_sql":"SELECT count(*) FROM symbols.main.source_kinds WHERE egress = false","ignore_column_names":true},
-  {"name":"sources_empty_cold","prompt":"How many symbol sources are currently registered on this freshly attached worker? List them with the sources function and return the count (it should be 0 until add_source is called).","reference_sql":"SELECT count(*) FROM symbols.main.sources()","ignore_column_names":true},
-  {"name":"cache_status_queryable","prompt":"This worker keeps a persistent, build-id-keyed debug-info cache. Using the cache_status table function, confirm the cache is queryable and report how many debug modules are currently cached (it may well be zero on a freshly attached worker).","check_sql":"SELECT count(*) >= 0 FROM symbols.main.cache_status()"},
-  {"name":"cache_evict_cold","prompt":"Clear the worker's entire resident debug-info cache using cache_evict (with no argument) and report how many bytes were freed. On a cold worker with nothing resident this is 0.","reference_sql":"SELECT bytes_freed FROM symbols.main.cache_evict()","ignore_column_names":true},
-  {"name":"drop_absent_source","prompt":"Try to drop a symbol source whose id is 'no_such_source'. Since no source with that id was registered, report whether one was actually removed (it should be false).","reference_sql":"SELECT dropped FROM symbols.main.drop_source('no_such_source')","ignore_column_names":true},
-  {"name":"register_dir_source","prompt":"Register a local, zero-egress directory symbol source pointing at the directory '/srv/debug' so the worker can find debug files there. Use the add_source function with the appropriate kind and locator argument, then confirm a source is now registered.","check_sql":"SELECT (SELECT source_id FROM symbols.main.add_source('dir', path => '/srv/debug')) IS NOT NULL AND (SELECT count(*) FROM symbols.main.sources()) > 0"}
+  {"name":"demangle_cpp_symbol","prompt":"Using the worker's demangle function, turn the mangled Itanium C++ linkage name '_ZN3foo3barEv' into its readable name (it should read 'foo::bar'). Return only the single demangled string."},
+  {"name":"demangle_passthrough","prompt":"The demangle function returns any name that is not actually mangled unchanged. Show what it returns for the plain name 'main'."},
+  {"name":"symbolicate_cold_status","prompt":"This worker has no symbol sources registered yet, so nothing can be resolved. Symbolicate the frame with build_id 'deadbeef' and module-relative address 4096 and report just the resolution status of the result (it will be 'not_found' because no matching debug file is available)."},
+  {"name":"function_name_cold","prompt":"With no symbol sources registered, resolving any address yields no name. Resolve the innermost function name for build_id 'deadbeef' at module-relative address 4096 — the result should be NULL."},
+  {"name":"inline_frames_empty_cold","prompt":"The inline_frames function returns just the inlined call chain (a list) at a frame. With no symbol sources registered, the chain for build_id 'deadbeef' at module-relative address 4096 is empty. Report the length of that list (it should be 0)."},
+  {"name":"module_info_missing_path","prompt":"Use the module_info table function to inspect the debug file at the path '/no/such/file.debug'. Because that path does not exist, module_info returns no rows. Report how many rows it returns (it should be 0)."},
+  {"name":"local_source_kinds","prompt":"The worker exposes a browsable reference table of the symbol-source kinds add_source accepts. Using it, count how many source kinds are local (they do not cross the trust boundary, i.e. egress is false). Return the count."},
+  {"name":"sources_empty_cold","prompt":"How many symbol sources are currently registered on this freshly attached worker? List them with the sources function and return the count (it should be 0 until add_source is called)."},
+  {"name":"cache_status_queryable","prompt":"This worker keeps a persistent, build-id-keyed debug-info cache. Using the cache_status table function, confirm the cache is queryable and report how many debug modules are currently cached (it may well be zero on a freshly attached worker)."},
+  {"name":"cache_evict_cold","prompt":"Clear the worker's entire resident debug-info cache using cache_evict (with no argument) and report how many bytes were freed. On a cold worker with nothing resident this is 0."},
+  {"name":"drop_absent_source","prompt":"Try to drop a symbol source whose id is 'no_such_source'. Since no source with that id was registered, report whether one was actually removed (it should be false)."},
+  {"name":"register_dir_source","prompt":"Register a local, zero-egress directory symbol source pointing at the directory '/srv/debug' so the worker can find debug files there. Use the add_source function with the appropriate kind and locator argument, then confirm a source is now registered."}
 ]"#
                     .to_string(),
             ),
@@ -121,6 +124,7 @@ pub fn catalog_metadata(name: &str) -> CatalogModel {
         implementation_version: Some(symbols_core::version().to_string()),
         schemas: vec![CatSchema {
             name: "main".to_string(),
+            path: Vec::new(),
             comment: Some(
                 "Symbolication functions: symbolicate frames, demangle names, inspect modules, \
                  manage the debug-info cache and symbol sources."

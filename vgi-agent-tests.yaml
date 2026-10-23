@@ -1,0 +1,44 @@
+# Private graders for the agent-suitability suite (`vgi-lint simulate`).
+#
+# The prompts are published in the catalog's vgi.agent_test_tasks tag
+# (crates/symbols-worker/src/catalog.rs); the answers live here, keyed by task
+# name, so the agent being graded never sees them (VGI416). vgi-lint discovers
+# this file next to vgi-lint.toml. Stateful surfaces (cache_status,
+# add_source) are graded by a check_sql sanity assertion rather than an exact
+# value; value-returning scalars set ignore_column_names.
+
+tasks:
+  - name: demangle_cpp_symbol
+    reference_sql: "SELECT symbols.main.demangle('_ZN3foo3barEv')"
+    ignore_column_names: true
+  - name: demangle_passthrough
+    reference_sql: "SELECT symbols.main.demangle('main')"
+    ignore_column_names: true
+  - name: symbolicate_cold_status
+    reference_sql: "SELECT (symbols.main.symbolicate('deadbeef', 4096)).status"
+    ignore_column_names: true
+  - name: function_name_cold
+    reference_sql: "SELECT symbols.main.function_name('deadbeef', 4096)"
+    ignore_column_names: true
+  - name: inline_frames_empty_cold
+    reference_sql: "SELECT length(symbols.main.inline_frames('deadbeef', 4096))"
+    ignore_column_names: true
+  - name: module_info_missing_path
+    reference_sql: "SELECT count(*) FROM symbols.main.module_info('/no/such/file.debug')"
+    ignore_column_names: true
+  - name: local_source_kinds
+    reference_sql: "SELECT count(*) FROM symbols.main.source_kinds WHERE egress = false"
+    ignore_column_names: true
+  - name: sources_empty_cold
+    reference_sql: "SELECT count(*) FROM symbols.main.sources()"
+    ignore_column_names: true
+  - name: cache_status_queryable
+    check_sql: "SELECT count(*) >= 0 FROM symbols.main.cache_status()"
+  - name: cache_evict_cold
+    reference_sql: "SELECT bytes_freed FROM symbols.main.cache_evict()"
+    ignore_column_names: true
+  - name: drop_absent_source
+    reference_sql: "SELECT dropped FROM symbols.main.drop_source('no_such_source')"
+    ignore_column_names: true
+  - name: register_dir_source
+    check_sql: "SELECT (SELECT source_id FROM symbols.main.add_source('dir', path => '/srv/debug')) IS NOT NULL AND (SELECT count(*) FROM symbols.main.sources()) > 0"

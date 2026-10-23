@@ -5,25 +5,25 @@ members = ["crates/symbols-core", "crates/symbols-worker"]
 [workspace.package]
 version = "0.1.1"
 edition = "2021"
-rust-version = "1.90"
+rust-version = "1.97"
 license = "MIT"
 authors = ["Query Farm LLC <hello@query.farm>"]
 repository = "https://github.com/Query-farm/vgi-symbols"
 
 [workspace.dependencies]
-# VGI Rust SDK (worker side), published on crates.io. Kept in lockstep: vgi 0.18
-# pins vgi-rpc ^0.11 and arrow 59, so a single arrow/vgi-rpc resolves.
-vgi = "0"
-vgi-rpc = { version = "0", default-features = false, features = ["macros", "stream-codec"] }
-arrow = { version = "59", default-features = false, features = ["ipc"] }
-arrow-array = "59"
-arrow-buffer = "59"
-arrow-schema = "59"
-arrow-select = "59"
+# VGI Rust SDK (worker side), published on crates.io. Kept in lockstep: vgi 0.46
+# pins vgi-rpc ^0.32 and arrow 60, so a single arrow/vgi-rpc resolves.
+vgi = "0.46"
+vgi-rpc = { version = "0.32", default-features = false, features = ["macros", "stream-codec"] }
+arrow = { version = "60", default-features = false, features = ["ipc"] }
+arrow-array = "60"
+arrow-buffer = "60"
+arrow-schema = "60"
+arrow-select = "60"
 
 # Symbolication stack — all MIT or MIT/Apache-2.0 (zero copyleft); pinned to the
 # co-versioned addr2line/object/gimli set.
-object = { version = "0.39", default-features = false, features = ["read", "std", "compression"] }
+object = { version = "0.40", default-features = false, features = ["read", "std", "compression"] }
 addr2line = { version = "0.27", default-features = false, features = ["std", "fallible-iterator", "smallvec", "rustc-demangle", "cpp_demangle"] }
 gimli = { version = "0.34", default-features = false, features = ["read", "std", "endian-reader"] }
 # PDB types come from the `pdb2` fork that `pdb-addr2line` re-exports (as
@@ -33,7 +33,7 @@ symbolic-demangle = { version = "13.6", default-features = false, features = ["c
 symbolic-common = "13.6"
 debugid = "0.8"
 uuid = "1"
-lru = "0.16"
+lru = "0.19"
 memmap2 = "0.9"
 glob = "0.3"
 serde = { version = "1", features = ["derive"] }

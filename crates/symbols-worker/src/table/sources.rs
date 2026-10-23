@@ -214,6 +214,11 @@ struct SourcesProducer {
 }
 
 impl TableProducer for SourcesProducer {
+    // Emits a single batch, so there is no cursor to resume.
+    fn resume_supported(&self) -> bool {
+        false
+    }
+
     fn next_batch(&mut self, _out: &mut OutputCollector) -> Result<Option<RecordBatch>> {
         let Some(specs) = self.specs.take() else {
             return Ok(None);
@@ -321,6 +326,11 @@ struct OneString {
     value: Option<String>,
 }
 impl TableProducer for OneString {
+    // Emits a single batch, so there is no cursor to resume.
+    fn resume_supported(&self) -> bool {
+        false
+    }
+
     fn next_batch(&mut self, _out: &mut OutputCollector) -> Result<Option<RecordBatch>> {
         let Some(v) = self.value.take() else {
             return Ok(None);
@@ -339,6 +349,11 @@ struct OneBool {
     value: Option<bool>,
 }
 impl TableProducer for OneBool {
+    // Emits a single batch, so there is no cursor to resume.
+    fn resume_supported(&self) -> bool {
+        false
+    }
+
     fn next_batch(&mut self, _out: &mut OutputCollector) -> Result<Option<RecordBatch>> {
         let Some(v) = self.value.take() else {
             return Ok(None);

@@ -104,6 +104,11 @@ struct InfoProducer {
 }
 
 impl TableProducer for InfoProducer {
+    // Emits a single batch, so there is no cursor to resume.
+    fn resume_supported(&self) -> bool {
+        false
+    }
+
     fn next_batch(&mut self, _out: &mut OutputCollector) -> Result<Option<RecordBatch>> {
         if self.done {
             return Ok(None);

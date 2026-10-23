@@ -92,3 +92,26 @@ proptest! {
         }
     }
 }
+
+/// cargo-fuzz `resolve_addr` crash (crash-668f742475ab548e574472b7d68c283ff1d2902a):
+/// a malformed Mach-O whose DWARF has units, resolved at `u64::MAX`, overflowed
+/// `addr + 1` inside `addr2line`'s unit lookup. Under the fuzzer that panic
+/// aborts the process; here (no abort hook) it would be caught and surface as a
+/// `CorruptLineProgram` error row. The resolver must instead skip the DWARF
+/// probe for that address and fall back cleanly, so no row may be an error.
+#[test]
+fn addr2line_probe_overflow_regression() {
+    const CRASH: &[u8] = include_bytes!("fixtures/fuzz_crash_addr2line_probe_overflow.bin");
+    exercise(CRASH);
+    let limits = Limits::default();
+    let module = ParsedModule::parse(CRASH.to_vec(), "fuzz".to_string(), &limits)
+        .expect("the crash input parses as a module");
+    for frame in module.resolve(u64::MAX, &limits) {
+        assert!(
+            !matches!(frame.status, symbols_core::frame::ResolveStatus::Error(_)),
+            "u64::MAX resolved to an error row: {:?}",
+            frame.status
+        );
+    }
+    let _ = module.function_name(u64::MAX);
+}

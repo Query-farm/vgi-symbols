@@ -135,6 +135,9 @@ impl DwarfModule {
     /// The innermost function name only (fast path).
     pub fn function_name(&self, addr: u64) -> Option<String> {
         // Prefer DWARF (gives the inlined-innermost name); fall back to symbols.
+        if !dwarf_probe_ok(addr) {
+            return self.symbol_for(addr).map(|s| s.to_string());
+        }
         if let Ok(mut iter) = self.ctx.find_frames(addr).skip_all_loads() {
             if let Ok(Some(frame)) = iter.next() {
                 if let Some(f) = frame.function {
@@ -151,6 +154,10 @@ impl DwarfModule {
     /// frame last). Totally fault-isolated.
     pub fn resolve(&self, addr: u64, limits: &Limits) -> Vec<ResolvedFrame> {
         let mut frames: Vec<ResolvedFrame> = Vec::new();
+
+        if !dwarf_probe_ok(addr) {
+            return vec![self.no_line_frame(addr)];
+        }
 
         let iter = self.ctx.find_frames(addr).skip_all_loads();
         let mut iter = match iter {
@@ -190,13 +197,7 @@ impl DwarfModule {
         }
 
         if raw.is_empty() {
-            // No DWARF coverage. Try the symbol table; otherwise a clean no_line.
-            let mut f = self.blank_frame(ResolveStatus::NoLine);
-            if let Some(name) = self.symbol_for(addr) {
-                f.function = Some(name.to_string());
-                f.function_raw = Some(name.to_string());
-            }
-            return vec![f];
+            return vec![self.no_line_frame(addr)];
         }
 
         let n = raw.len();
@@ -212,6 +213,17 @@ impl DwarfModule {
             frames.push(f);
         }
         frames
+    }
+
+    /// The frame for an address with no DWARF coverage: the nearest-below symbol
+    /// table entry if there is one, otherwise a clean `no_line`.
+    fn no_line_frame(&self, addr: u64) -> ResolvedFrame {
+        let mut f = self.blank_frame(ResolveStatus::NoLine);
+        if let Some(name) = self.symbol_for(addr) {
+            f.function = Some(name.to_string());
+            f.function_raw = Some(name.to_string());
+        }
+        f
     }
 
     /// A frame pre-stamped with this module's name + debug-id and a status, with
@@ -284,4 +296,18 @@ fn dwarf_stats(dwarf: &gimli::Dwarf<Reader>, limits: &Limits) -> (i64, bool) {
         }
     }
     (file_count, has_line)
+}
+
+/// Whether `addr` may be handed to `addr2line`'s frame lookup.
+///
+/// `addr2line` (0.25 through at least 0.27.1, `ResUnits::find` in `src/unit.rs`)
+/// probes the half-open range `[addr, addr + 1)` with an unchecked `addr + 1`,
+/// which overflows for `u64::MAX`: a panic wherever overflow checks are on (the
+/// `cargo-fuzz` build, whose abort-on-panic hook fires before our
+/// `catch_unwind` can contain it) and a silently empty `[MAX, 0)` probe
+/// otherwise. No DWARF range can cover an address whose range end is
+/// unrepresentable, so that address goes straight to the symbol-table fallback.
+/// Regression input: `tests/fixtures/fuzz_crash_addr2line_probe_overflow.bin`.
+fn dwarf_probe_ok(addr: u64) -> bool {
+    addr != u64::MAX
 }

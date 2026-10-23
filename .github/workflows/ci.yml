@@ -63,11 +63,11 @@ jobs:
 
       - name: Install the haybarn unittest runner
         run: |
-          uv tool install haybarn-unittest
+          uv tool install 'haybarn-unittest<2'
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
       - name: Install the vgi community extension
-        run: echo "INSTALL vgi FROM community;" | uvx haybarn-cli
+        run: echo "INSTALL vgi FROM community;" | uvx --from 'haybarn-cli<2' haybarn-cli
 
       - name: Run SQLLogic suite against the built worker
         run: ./run_tests.sh

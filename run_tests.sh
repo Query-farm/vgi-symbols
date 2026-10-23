@@ -3,8 +3,8 @@
 # the haybarn DuckDB unittest runner (which ships the `vgi` community extension).
 #
 # Prerequisites (one-time):
-#   uv tool install haybarn-unittest
-#   echo "INSTALL vgi FROM community;" | uvx haybarn-cli
+#   uv tool install 'haybarn-unittest<2'
+#   echo "INSTALL vgi FROM community;" | uvx --from 'haybarn-cli<2' haybarn-cli
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,14 +13,14 @@ cd "$REPO_ROOT"
 UNITTEST="${VGI_UNITTEST:-$(command -v haybarn-unittest || true)}"
 if [[ -z "$UNITTEST" || ! -x "$UNITTEST" ]]; then
     echo "ERROR: haybarn-unittest not found. Install it with:" >&2
-    echo "       uv tool install haybarn-unittest" >&2
+    echo "       uv tool install 'haybarn-unittest<2'" >&2
     exit 1
 fi
 
 # Ensure the vgi community extension is installed for this haybarn version.
-if ! echo "LOAD vgi;" | uvx haybarn-cli >/dev/null 2>&1; then
+if ! echo "LOAD vgi;" | uvx --from 'haybarn-cli<2' haybarn-cli >/dev/null 2>&1; then
     echo "==> Installing vgi extension from community repository"
-    echo "INSTALL vgi FROM community;" | uvx haybarn-cli
+    echo "INSTALL vgi FROM community;" | uvx --from 'haybarn-cli<2' haybarn-cli
 fi
 
 echo "==> Building symbols-worker (release)"

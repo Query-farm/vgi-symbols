@@ -71,7 +71,7 @@ SELECT f.thread_id, f.frame_idx, u.depth, u.fr.function, u.fr.file, u.fr.line
 FROM   stack_frames f,
        UNNEST(list_transform(
          symbols.main.symbolicate(f.build_id, f.address).inlined,
-         (x, i) -> {'depth': i, 'fr': x})) AS t(u)
+         lambda x, i: {'depth': i, 'fr': x})) AS t(u)
 ORDER  BY f.thread_id, f.frame_idx, u.depth;
 
 -- 4. Just the inline chain at an address.
@@ -174,7 +174,7 @@ cargo build --release                           # → target/release/symbols-wor
 The end-to-end suite needs the haybarn tooling (one-time):
 
 ```sh
-uv tool install haybarn-unittest
+uv tool install --prerelease allow 'haybarn-unittest>=2.0.0rc11,<2.1'
 echo "INSTALL vgi FROM community;" | uvx haybarn-cli
 ```
 

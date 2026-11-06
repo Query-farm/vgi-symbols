@@ -33,7 +33,7 @@ ok
 
 # The inline chain in the scalar STRUCT is innermost-first.
 query T
-SELECT list_transform((symbols.main.symbolicate('76ff8518da153e64a8403892fcbf11250', 4294968116)).inlined, x -> x.function);
+SELECT list_transform((symbols.main.symbolicate('76ff8518da153e64a8403892fcbf11250', 4294968116)).inlined, lambda x: x.function);
 ----
 [inner_lo, inner_hi]
 
@@ -45,7 +45,7 @@ inner_lo
 
 # inline_frames returns just the chain (innermost-first, no physical frame).
 query T
-SELECT list_transform(symbols.main.inline_frames('76ff8518da153e64a8403892fcbf11250', 4294968116), x -> x.function);
+SELECT list_transform(symbols.main.inline_frames('76ff8518da153e64a8403892fcbf11250', 4294968116), lambda x: x.function);
 ----
 [inner_lo, inner_hi]
 
@@ -63,7 +63,7 @@ query IT
 SELECT u.depth, u.fr.function
 FROM (VALUES ('76ff8518da153e64a8403892fcbf11250', 4294968116::UBIGINT)) AS f(build_id, address),
      UNNEST(list_transform((symbols.main.symbolicate(f.build_id, f.address)).inlined,
-                           (x, i) -> {'depth': i, 'fr': x})) AS t(u)
+                           lambda x, i: {'depth': i, 'fr': x})) AS t(u)
 ORDER BY u.depth;
 ----
 1	inner_lo

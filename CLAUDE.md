@@ -20,7 +20,7 @@ wave: `vgi-minidump`, `vgi-pprof`, and `vgi-perf` feed `(build_id, address)` int
 it. Keep scope tight to that — resist feature sprawl (unwinding, minidump
 parsing, load-map/ASLR resolution, a symbol-store UI are all out of scope).
 
-Built on the published VGI Rust SDK (`vgi = "0.46"` from crates.io), arrow 60.
+Built on the published VGI Rust SDK (`vgi = "0.49.2"` from crates.io, protocol vgi.v3 / 3.1, haybarn 2.0), arrow 59.
 Modeled on `../vgi-fixedformat`. The repo builds standalone — no local SDK
 checkout. **Worker license: Query Farm Source-Available** (a stateful compute
 asset, not a pure-permissive utility) — all *dependencies* are MIT/Apache-2.0.
@@ -119,7 +119,7 @@ cd crates/symbols-worker/fuzz && cargo +nightly fuzz run parse_module   # zero-p
 
 E2E needs the haybarn tooling (one-time):
 ```sh
-uv tool install haybarn-unittest
+uv tool install --prerelease allow 'haybarn-unittest>=2.0.0rc11,<2.1'
 echo "INSTALL vgi FROM community;" | uvx haybarn-cli
 ```
 `run_tests.sh` builds the worker and points `VGI_SYMBOLS_WORKER` at the binary

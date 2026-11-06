@@ -4,6 +4,14 @@ All notable changes to `vgi-symbols` are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and the project follows
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- Ported to VGI protocol 3.1 (`vgi` 0.49.2, `vgi-rpc` 0.32.3, arrow 59). Requires
+  haybarn 2.0 and its community `vgi` extension; haybarn 1.5 can no longer attach this worker.
+- SQL examples and tests use the `lambda x: ...` syntax; DuckDB in haybarn 2.0 rejects
+  the deprecated `x -> ...` arrow lambda.
+
 ## [0.1.0] — initial
 
 ### Added

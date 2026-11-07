@@ -62,6 +62,7 @@ impl ScalarFunction for Symbolicate {
                 .into(),
             examples: Vec::new(),
             tags,
+            return_type: Some(symbolicate_struct_type()),
             ..Default::default()
         }
     }

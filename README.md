@@ -39,20 +39,42 @@ boundary and drives cold start.
 
 ## Quick start
 
+Every [GitHub release](https://github.com/Query-farm/vgi-symbols/releases) ships a prebuilt worker binary. The `vgi` extension downloads the one for your platform, checks its SHA-256 and caches it, so there is nothing to install besides DuckDB:
+
 ```sql
 INSTALL vgi FROM community;
 LOAD vgi;
-ATTACH 'symbols' AS symbols (TYPE vgi, LOCATION '/path/to/symbols-worker');
 
--- Point the worker at where debug files live (LOCAL by default; zero egress).
-CALL symbols.add_source('dir',  path => '/srv/debug');
-CALL symbols.add_source('glob', path => '/builds/**/*.{debug,pdb,dSYM}');
+ATTACH 'symbols' AS symbols (TYPE vgi, LOCATION 'github-auto://Query-farm/vgi-symbols@v0.2.1');
 
--- Resolve a single (build_id, address) frame to function/file/line + inline chain.
-SELECT symbols.main.symbolicate('76ff8518da153e64a8403892fcbf11250', 4294968116) AS frame;
---   → {function: 'apply', file: '…/prog.c', line: 16,
---      inlined: [{function:'inner_lo', …}, {function:'inner_hi', …}], status: 'ok', …}
+-- Symbolicate one module-relative frame to its function name and resolution status.
+SELECT (symbols.main.symbolicate('e4c1f2b9', 303600)).function AS function, (symbols.main.symbolicate('e4c1f2b9', 303600)).status AS status;
+
+-- Bulk-symbolicate a frame column: resolve each (build_id, address) to its innermost
+-- function name for a flamegraph or GROUP BY key.
+SELECT f.build_id, f.address, symbols.main.function_name(f.build_id, f.address) AS function FROM stack_frames f;
 ```
+
+To resolve real frames, first point the worker at where your debug files live
+(local by default; zero egress), e.g.
+`CALL symbols.add_source('dir', path => '/srv/debug');` — see
+[Symbol sources](#symbol-sources-local-first-remote-opt-in) for remote/opt-in sources.
+
+Prebuilt binaries cover macOS (Apple silicon), Linux (x86-64 and arm64) and Windows (x86-64). `github-auto://` needs an explicit release tag; change `@v0.2.1` to move to a newer release.
+
+### Other ways to run it
+
+- **Docker** (the image bundles the worker; needs a container runtime):
+
+  ```sql
+  ATTACH 'symbols' AS symbols (TYPE vgi, LOCATION 'docker://ghcr.io/query-farm/vgi-symbols:0.2.1');
+  ```
+
+- **Manual download.** Download the archive for your platform from the [releases page](https://github.com/Query-farm/vgi-symbols/releases), verify it against its `.sha256` file (a cosign `.cosign.bundle` is published alongside), unpack it, and set `LOCATION` to the path of the extracted worker executable.
+
+### Build from source
+
+To build the worker yourself, see [Build & test](#build--test).
 
 ## SQL surface
 

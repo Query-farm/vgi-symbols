@@ -11,9 +11,9 @@ authors = ["Query Farm LLC <hello@query.farm>"]
 repository = "https://github.com/Query-farm/vgi-symbols"
 
 [workspace.dependencies]
-# VGI Rust SDK (worker side), published on crates.io. Kept in lockstep: vgi 0.49.2
+# VGI Rust SDK (worker side), published on crates.io. Kept in lockstep: vgi 0.50.0
 # pins vgi-rpc ^0.32.3 and arrow 59.2, so a single arrow/vgi-rpc resolves.
-vgi = "0.49.2"
+vgi = "0.50.0"
 vgi-rpc = { version = "0.32.3", default-features = false, features = ["macros", "stream-codec"] }
 arrow = { version = "59.2", default-features = false, features = ["ipc"] }
 arrow-array = "59.2"

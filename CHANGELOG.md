@@ -7,6 +7,8 @@ All notable changes to `vgi-symbols` are documented here. The format is based on
 ## [Unreleased]
 
 ### Changed
+- Ported to VGI protocol 3.2 (`vgi` 0.49.2 -> 0.50.0). The haybarn `vgi` extension
+  matches protocol major+minor exactly, so 3.1 workers are rejected by the current build.
 - Ported to VGI protocol 3.1 (`vgi` 0.49.2, `vgi-rpc` 0.32.3, arrow 59). Requires
   haybarn 2.0 and its community `vgi` extension; haybarn 1.5 can no longer attach this worker.
 - SQL examples and tests use the `lambda x: ...` syntax; DuckDB in haybarn 2.0 rejects

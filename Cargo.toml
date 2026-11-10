@@ -13,7 +13,12 @@ repository = "https://github.com/Query-farm/vgi-symbols"
 [workspace.dependencies]
 # VGI Rust SDK (worker side), published on crates.io. Kept in lockstep: vgi 0.50.0
 # pins vgi-rpc ^0.32.3 and arrow 59.2, so a single arrow/vgi-rpc resolves.
-vgi = "0.50.0"
+#
+# Default features are off to drop `sqlite`: it only backs the SDK's cross-process
+# state store (buffering / aggregate / COPY TO), which this worker never uses, and
+# vgi 0.50.0 pins rusqlite 0.39 -> libsqlite3-sys 0.37 (RUSTSEC-2026-0459). With
+# it off the SDK falls back to its `fs` store.
+vgi = { version = "0.50.0", default-features = false, features = ["transport-http", "catalog-publication"] }
 vgi-rpc = { version = "0.32.3", default-features = false, features = ["macros", "stream-codec"] }
 arrow = { version = "59.2", default-features = false, features = ["ipc"] }
 arrow-array = "59.2"

@@ -19,7 +19,13 @@ pub fn catalog_metadata(name: &str) -> CatalogModel {
         tags: vec![
             (
                 "vgi.title".to_string(),
-                "Native Symbolication (DWARF / PDB)".to_string(),
+                "Native Symbolication".to_string(),
+            ),
+            (
+                "vgi.subtitle".to_string(),
+                "Resolve stack-frame addresses to function names, source lines and inlined call \
+                 chains using DWARF and PDB debug info."
+                    .to_string(),
             ),
             (
                 "vgi.keywords".to_string(),
@@ -131,7 +137,7 @@ pub fn catalog_metadata(name: &str) -> CatalogModel {
                     .to_string(),
             ),
             tags: vec![
-                ("vgi.title".to_string(), "Symbols — main".to_string()),
+                ("vgi.title".to_string(), "Symbolication Functions".to_string()),
                 (
                     "vgi.keywords".to_string(),
                     crate::meta::keywords_json(

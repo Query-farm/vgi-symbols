@@ -7,6 +7,18 @@ All notable changes to `vgi-symbols` are documented here. The format is based on
 ## [Unreleased]
 
 ### Changed
+- Catalog metadata satisfies vgi-lint 2.2: the catalog `vgi.title` is now the short
+  name "Native Symbolication" (VGI147), the catalog carries a one-sentence
+  `vgi.subtitle` (VGI148/VGI149), and the `main` schema title is
+  "Symbolication Functions" instead of the headline-style "Symbols — main".
+
+### Security
+- Build `vgi` without its default `sqlite` feature. vgi 0.50.0 pins rusqlite 0.39,
+  whose bundled SQLite (libsqlite3-sys 0.37) is affected by RUSTSEC-2026-0459
+  (CVE-2026-119375). The feature only backs the SDK's cross-process state store,
+  which this worker does not use; the SDK now falls back to its `fs` store.
+
+### Changed
 - Ported to VGI protocol 3.2 (`vgi` 0.49.2 -> 0.50.0). The haybarn `vgi` extension
   matches protocol major+minor exactly, so 3.1 workers are rejected by the current build.
 - Ported to VGI protocol 3.1 (`vgi` 0.49.2, `vgi-rpc` 0.32.3, arrow 59). Requires

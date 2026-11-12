@@ -45,7 +45,7 @@ Every [GitHub release](https://github.com/Query-farm/vgi-symbols/releases) ships
 INSTALL vgi FROM community;
 LOAD vgi;
 
-ATTACH 'symbols' AS symbols (TYPE vgi, LOCATION 'github-auto://Query-farm/vgi-symbols@v0.3.0');
+ATTACH 'symbols' AS symbols (TYPE vgi, LOCATION 'github-auto://Query-farm/vgi-symbols@v0.4.0');
 
 -- Symbolicate one module-relative frame to its function name and resolution status.
 SELECT (symbols.main.symbolicate('e4c1f2b9', 303600)).function AS function, (symbols.main.symbolicate('e4c1f2b9', 303600)).status AS status;
@@ -60,14 +60,14 @@ To resolve real frames, first point the worker at where your debug files live
 `CALL symbols.add_source('dir', path => '/srv/debug');` — see
 [Symbol sources](#symbol-sources-local-first-remote-opt-in) for remote/opt-in sources.
 
-Prebuilt binaries cover macOS (Apple silicon), Linux (x86-64 and arm64) and Windows (x86-64). `github-auto://` needs an explicit release tag; change `@v0.3.0` to move to a newer release.
+Prebuilt binaries cover macOS (Apple silicon), Linux (x86-64 and arm64) and Windows (x86-64). `github-auto://` needs an explicit release tag; change `@v0.4.0` to move to a newer release.
 
 ### Other ways to run it
 
 - **Docker** (the image bundles the worker; needs a container runtime):
 
   ```sql
-  ATTACH 'symbols' AS symbols (TYPE vgi, LOCATION 'docker://ghcr.io/query-farm/vgi-symbols:0.3.0');
+  ATTACH 'symbols' AS symbols (TYPE vgi, LOCATION 'docker://ghcr.io/query-farm/vgi-symbols:0.4.0');
   ```
 
 - **Manual download.** Download the archive for your platform from the [releases page](https://github.com/Query-farm/vgi-symbols/releases), verify it against its `.sha256` file (a cosign `.cosign.bundle` is published alongside), unpack it, and set `LOCATION` to the path of the extracted worker executable.

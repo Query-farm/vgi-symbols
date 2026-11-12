@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/symbols-core", "crates/symbols-worker"]
 
 [workspace.package]
-version = "0.3.0"
+version = "0.4.0"
 edition = "2021"
 rust-version = "1.97"
 license = "MIT"
@@ -11,15 +11,15 @@ authors = ["Query Farm LLC <hello@query.farm>"]
 repository = "https://github.com/Query-farm/vgi-symbols"
 
 [workspace.dependencies]
-# VGI Rust SDK (worker side), published on crates.io. Kept in lockstep: vgi 0.50.0
-# pins vgi-rpc ^0.32.3 and arrow 59.2, so a single arrow/vgi-rpc resolves.
+# VGI Rust SDK (worker side), published on crates.io. Kept in lockstep: vgi 0.51.0
+# pins vgi-rpc ^0.32.4 and arrow 59.2, so a single arrow/vgi-rpc resolves.
 #
 # Default features are off to drop `sqlite`: it only backs the SDK's cross-process
 # state store (buffering / aggregate / COPY TO), which this worker never uses, and
-# vgi 0.50.0 pins rusqlite 0.39 -> libsqlite3-sys 0.37 (RUSTSEC-2026-0459). With
+# vgi 0.50.0 pinned rusqlite 0.39 -> libsqlite3-sys 0.37 (RUSTSEC-2026-0459). With
 # it off the SDK falls back to its `fs` store.
-vgi = { version = "0.50.0", default-features = false, features = ["transport-http", "catalog-publication"] }
-vgi-rpc = { version = "0.32.3", default-features = false, features = ["macros", "stream-codec"] }
+vgi = { version = "0.51.0", default-features = false, features = ["transport-http", "catalog-publication"] }
+vgi-rpc = { version = "0.32.4", default-features = false, features = ["macros", "stream-codec"] }
 arrow = { version = "59.2", default-features = false, features = ["ipc"] }
 arrow-array = "59.2"
 arrow-buffer = "59.2"

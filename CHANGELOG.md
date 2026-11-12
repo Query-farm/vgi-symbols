@@ -6,6 +6,15 @@ All notable changes to `vgi-symbols` are documented here. The format is based on
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-11-12
+
+### Changed
+- Ported to VGI protocol 3.3 (`vgi` 0.50.0 -> 0.51.0, `vgi-rpc` 0.32.3 -> 0.32.4).
+  The current haybarn `vgi` extension speaks 3.3 and rejects 3.2 workers. No
+  SQL-visible change: every function stays registered as a public table function.
+
+## [0.3.0] and earlier
+
 ### Changed
 - Catalog metadata satisfies vgi-lint 2.2: the catalog `vgi.title` is now the short
   name "Native Symbolication" (VGI147), the catalog carries a one-sentence

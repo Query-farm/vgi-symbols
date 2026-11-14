@@ -194,15 +194,17 @@ pub fn catalog_metadata(name: &str) -> CatalogModel {
                     // scalar `symbolicate` / `function_name` over a frame column and
                     // UNNESTs the `inlined` list for inline-expanded rows — the
                     // working vectorized path under the current DuckDB + vgi binder.
-                    r#"[
-  {"description":"Register a local, zero-egress directory of debug files and capture its source_id.","sql":"SELECT source_id FROM symbols.main.add_source('dir', path => '/srv/debug')"},
-  {"description":"Symbolicate one module-relative frame to its function name and resolution status.","sql":"SELECT (symbols.main.symbolicate('e4c1f2b9', 303600)).function AS function, (symbols.main.symbolicate('e4c1f2b9', 303600)).status AS status"},
-  {"description":"Bulk-symbolicate a frame column: resolve each (build_id, address) to its innermost function name for a flamegraph or GROUP BY key.","sql":"SELECT f.build_id, f.address, symbols.main.function_name(f.build_id, f.address) AS function FROM stack_frames f"},
-  {"description":"Demangle a raw Itanium C++ linkage name to its readable form.","sql":"SELECT symbols.main.demangle('_ZN3foo3barEv') AS name"},
-  {"description":"Triage a debug file by path, reading just its format and debug-id (zero rows if the path is missing).","sql":"SELECT format, debug_id FROM symbols.main.module_info('/srv/debug/libssl.so.debug')"},
-  {"description":"Watch the build-id-keyed cache: the hottest resident debug modules first.","sql":"SELECT debug_id, name, bytes_resident FROM symbols.main.cache_status() ORDER BY bytes_resident DESC"}
-]"#
-                        .to_string(),
+                    crate::meta::example_list(&[
+                        r#"{"description":"Register a local, zero-egress directory of debug files and capture its source_id.","sql":"SELECT source_id FROM symbols.main.add_source('dir', path => '/srv/debug')"}"#,
+                        r#"{"description":"Symbolicate one module-relative frame to its function name and resolution status.","sql":"SELECT (symbols.main.symbolicate('e4c1f2b9', 303600)).function AS function, (symbols.main.symbolicate('e4c1f2b9', 303600)).status AS status"}"#,
+                        r#"{"description":"Bulk-symbolicate a frame column: resolve each (build_id, address) to its innermost function name for a flamegraph or GROUP BY key.","sql":"SELECT f.build_id, f.address, symbols.main.function_name(f.build_id, f.address) AS function FROM stack_frames f"}"#,
+                        r#"{"description":"Demangle a raw Itanium C++ linkage name to its readable form.","sql":"SELECT symbols.main.demangle('_ZN3foo3barEv') AS name"}"#,
+                        r#"{"description":"Triage a debug file by path, reading just its format and debug-id (zero rows if the path is missing).","sql":"SELECT format, debug_id FROM symbols.main.module_info('/srv/debug/libssl.so.debug')"}"#,
+                        r#"{"description":"Watch the build-id-keyed cache: the hottest resident debug modules first.","sql":"SELECT debug_id, name, bytes_resident FROM symbols.main.cache_status() ORDER BY bytes_resident DESC"}"#,
+                        // Composed: two of the worker's objects in one query.
+                        crate::meta::EX_UNREGISTERED_LOCAL_KINDS,
+                        crate::meta::EX_MATCH_DEBUG_FILE,
+                    ]),
                 ),
             ],
             // A browsable, credential-free reference view (VGI146): it lets an
@@ -274,14 +276,12 @@ pub fn catalog_metadata(name: &str) -> CatalogModel {
                     ),
                     (
                         "vgi.example_queries".to_string(),
-                        "[{\"description\":\"List the local, zero-egress source kinds and the \
-                         add_source argument that locates each.\",\"sql\":\"SELECT kind, \
-                         locator_arg FROM symbols.main.source_kinds WHERE egress = false ORDER BY \
-                         kind\"},{\"description\":\"Show every source kind with whether \
-                         registering it crosses the trust boundary.\",\"sql\":\"SELECT kind, \
-                         locality, egress FROM symbols.main.source_kinds ORDER BY egress, \
-                         kind\"}]"
-                            .to_string(),
+                        crate::meta::example_list(&[
+                            r#"{"description":"List the local, zero-egress source kinds and the add_source argument that locates each.","sql":"SELECT kind, locator_arg FROM symbols.main.source_kinds WHERE egress = false ORDER BY kind"}"#,
+                            r#"{"description":"Show every source kind with whether registering it crosses the trust boundary.","sql":"SELECT kind, locality, egress FROM symbols.main.source_kinds ORDER BY egress, kind"}"#,
+                            // Composed with sources(): what is left to register.
+                            crate::meta::EX_UNREGISTERED_LOCAL_KINDS,
+                        ]),
                     ),
                 ],
                 column_comments: vec![

@@ -44,3 +44,20 @@ pub fn object_tags(
         ("vgi.keywords".to_string(), keywords_json(keywords)),
     ]
 }
+
+/// Join pre-encoded `{"description":…,"sql":…}` JSON objects into the JSON list
+/// a `vgi.example_queries` tag carries, so a composed example is written once
+/// (a constant below) and shared by the schema-level list and the per-object
+/// list of the object that drives it.
+pub fn example_list(items: &[&str]) -> String {
+    format!("[\n  {}\n]", items.join(",\n  "))
+}
+
+/// Composed example (`source_kinds` view + `sources()`): the local, zero-egress
+/// source kinds not registered yet, with the `add_source` argument each needs.
+pub const EX_UNREGISTERED_LOCAL_KINDS: &str = r#"{"description":"Find the local, zero-egress source kinds that are not registered yet (source_kinds anti-joined to sources()), with the add_source argument each one needs; returns dir and glob on a fresh worker, and only glob once a dir source is added.","sql":"SELECT k.kind, k.locator_arg FROM symbols.main.source_kinds AS k WHERE k.egress = false AND k.kind NOT IN (SELECT s.kind FROM symbols.main.sources() AS s) ORDER BY k.kind"}"#;
+
+/// Composed example (`module_info` on a binary joined to `module_info` on a
+/// candidate debug file): confirm a separate debug file belongs to a shipped,
+/// stripped binary by matching their debug-ids.
+pub const EX_MATCH_DEBUG_FILE: &str = r#"{"description":"Check that a separate debug file belongs to a shipped binary: inspect both with module_info and join on debug_id. One row (the debug file's format, arch and has_line_table) when the build-ids match; zero rows when they differ or either path is not an object file.","sql":"SELECT b.debug_id, d.format, d.arch, d.has_line_table FROM symbols.main.module_info('/srv/bin/myapp') AS b JOIN symbols.main.module_info('/srv/debug/myapp.debug') AS d ON d.debug_id = b.debug_id ORDER BY b.debug_id"}"#;

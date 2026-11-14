@@ -1,0 +1,47 @@
+# name: test/sql/compose.test
+# description: Composed examples — two of the worker's objects in one query
+# group: [sql]
+
+require-env VGI_SYMBOLS_WORKER
+
+require-env VGI_SYMBOLS_DIR
+
+statement ok
+LOAD vgi;
+
+statement ok
+ATTACH 'symbols' AS symbols (TYPE vgi, LOCATION '${VGI_SYMBOLS_WORKER}');
+
+# source_kinds anti-joined to sources(): on a fresh worker both local kinds are
+# still unregistered.
+query TT
+SELECT k.kind, k.locator_arg FROM symbols.main.source_kinds AS k WHERE k.egress = false AND k.kind NOT IN (SELECT s.kind FROM symbols.main.sources() AS s) ORDER BY k.kind;
+----
+dir	path
+glob	path
+
+statement ok
+CALL symbols.add_source('dir', path => '${VGI_SYMBOLS_DIR}');
+
+# Once a dir source is registered, only glob is left.
+query TT
+SELECT k.kind, k.locator_arg FROM symbols.main.source_kinds AS k WHERE k.egress = false AND k.kind NOT IN (SELECT s.kind FROM symbols.main.sources() AS s) ORDER BY k.kind;
+----
+glob	path
+
+# module_info joined to module_info on debug_id: a file matches itself ...
+query TTTT
+SELECT b.debug_id, d.format, d.arch, d.has_line_table::VARCHAR
+FROM symbols.main.module_info('${VGI_SYMBOLS_DIR}/macho_inline.dwarf') AS b
+JOIN symbols.main.module_info('${VGI_SYMBOLS_DIR}/macho_inline.dwarf') AS d ON d.debug_id = b.debug_id
+ORDER BY b.debug_id;
+----
+76ff8518da153e64a8403892fcbf11250	MachO	aarch64	true
+
+# ... and two different builds do not.
+query I
+SELECT count(*)
+FROM symbols.main.module_info('${VGI_SYMBOLS_DIR}/macho_inline.dwarf') AS b
+JOIN symbols.main.module_info('${VGI_SYMBOLS_DIR}/macho_compute.dwarf') AS d ON d.debug_id = b.debug_id;
+----
+0

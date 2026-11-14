@@ -112,6 +112,13 @@ FROM   symbols.main.cache_status() ORDER BY bytes_resident DESC;
 
 -- 8. Audit where symbols come from (and whether any source egresses).
 SELECT * FROM symbols.main.sources();
+
+-- 9. Does this debug file belong to the binary we shipped? Inspect both and join
+--    on debug_id: one row when the build-ids match, zero rows when they differ.
+SELECT b.debug_id, d.format, d.arch, d.has_line_table
+FROM   symbols.main.module_info('/srv/bin/myapp') AS b
+JOIN   symbols.main.module_info('/srv/debug/myapp.debug') AS d ON d.debug_id = b.debug_id
+ORDER  BY b.debug_id;
 ```
 
 ### Functions

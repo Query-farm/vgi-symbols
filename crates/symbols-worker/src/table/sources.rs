@@ -164,6 +164,12 @@ impl TableFunction for ListSources {
             r#"[{"description":"Audit the registered symbol sources in resolve order, including whether each is enabled and whether using it crosses the trust boundary (egress). Returns no rows until a source is registered with add_source; pass enabled_only => true to list only active sources.","sql":"SELECT source_id, kind, location, enabled, egress FROM symbols.main.sources()"}]"#
                 .into(),
         ));
+        // Composed example (sources() + the source_kinds view), shared with the
+        // schema-level list; agents see an object's vgi.example_queries.
+        tags.push((
+            "vgi.example_queries".into(),
+            crate::meta::example_list(&[crate::meta::EX_UNREGISTERED_LOCAL_KINDS]),
+        ));
         FunctionMetadata {
             description: "List the registered symbol sources (source_id, kind, location, enabled, \
                           egress)"

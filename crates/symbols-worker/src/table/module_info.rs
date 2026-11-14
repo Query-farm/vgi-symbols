@@ -253,6 +253,12 @@ impl TableFunction for ModuleInfoPath {
             r#"[{"description":"Triage a debug file by filesystem path (one row with format / debug_id / has_line_table, or zero rows if the path is missing or not a debug file). Point it at a real symbol file on the worker host, e.g. '/srv/debug/libssl.so.debug'.","sql":"SELECT * FROM symbols.main.module_info('/srv/debug/libssl.so.debug')"}]"#
                 .into(),
         ));
+        // Composed example (module_info on a binary joined to module_info on its
+        // debug file), shared with the schema-level list.
+        tags.push((
+            "vgi.example_queries".into(),
+            crate::meta::example_list(&[crate::meta::EX_MATCH_DEBUG_FILE]),
+        ));
         FunctionMetadata {
             description: "Inspect a debug file by path (format, debug-id, line info) without \
                           resolving"

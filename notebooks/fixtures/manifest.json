@@ -1,0 +1,11 @@
+{
+  "source_commit": "1d76daf3589edc489960191781888f1020cd72d9",
+  "note": "Authored frame records use golden-test virtual addresses. Debug modules and C provenance sources are unchanged repository fixtures; binaries are parsed, never executed.",
+  "sha256": {
+    "frames.json": "9986f1dbd325643e3200efadbd5c2fbc9587cf0af8c868a7b533cc6316ccd460",
+    "macho_inline.dwarf": "45383c9baaa8b3e93ac986317e6784c068012c51a192d0f03504cdaeb6fa96a9",
+    "macho_compute.dwarf": "b66a3316ea15ae466d1184ee96794bf49cd44cbd95f74b3f8e1302cbb53bd71d",
+    "prog.c": "6346f8b3fce52c911c49523ce0e6e84f84cad63815088dae3ed03e66f75fcf84",
+    "prog2.c": "e5e2ecb082168e8feaa2fd313821a29b317b1c9147261592c4a96c04a95016d7"
+  }
+}

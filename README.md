@@ -217,3 +217,7 @@ regenerate the golden Mach-O dSYM fixtures.
 
 Query Farm Source-Available — see [`LICENSE`](LICENSE). Copyright 2026 Query Farm
 LLC — https://query.farm
+
+## Executable notebooks
+
+See [the SQL-first Python notebook](notebooks/README.md) for local symbol sources, frame-resolution coverage and inline expansion with visualizations.

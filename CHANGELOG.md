@@ -9,8 +9,8 @@ All notable changes to `vgi-symbols` are documented here. The format is based on
 ### Added
 - Composed example queries that combine two of the worker's objects:
   `source_kinds` anti-joined to `sources()` (local kinds still to register) and
-  `module_info` on a binary joined to `module_info` on its debug file (do the
-  build-ids match). Each is in the schema-level list and on the driving object's
+  `module_info` on a binary compared with `module_info` on its debug file (one
+  verdict row: do the build-ids match). Each is in the schema-level list and on the driving object's
   examples; covered by `test/sql/compose.test`. README gains the debug-file match.
 
 ## [0.4.0] — 2026-11-12

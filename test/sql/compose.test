@@ -31,19 +31,21 @@ SELECT k.kind, k.locator_arg FROM symbols.main.source_kinds AS k WHERE k.egress 
 ----
 glob	path
 
-# module_info joined to module_info on debug_id: a file matches itself ...
-query TTTT
-SELECT b.debug_id, d.format, d.arch, d.has_line_table::VARCHAR
-FROM symbols.main.module_info('${VGI_SYMBOLS_DIR}/macho_inline.dwarf') AS b
-JOIN symbols.main.module_info('${VGI_SYMBOLS_DIR}/macho_inline.dwarf') AS d ON d.debug_id = b.debug_id
-ORDER BY b.debug_id;
+# module_info compared with module_info on debug_id (the EX_MATCH_DEBUG_FILE
+# shape, fixture paths swapped in): a file matches itself ...
+query TTTTTT
+SELECT coalesce(b.debug_id = d.debug_id, false) AS matches, b.debug_id AS binary_debug_id, d.debug_id AS debug_file_debug_id, d.format, d.arch, d.has_line_table FROM (SELECT 1) AS one LEFT JOIN symbols.main.module_info('${VGI_SYMBOLS_DIR}/macho_inline.dwarf') AS b ON true LEFT JOIN symbols.main.module_info('${VGI_SYMBOLS_DIR}/macho_inline.dwarf') AS d ON true;
 ----
-76ff8518da153e64a8403892fcbf11250	MachO	aarch64	true
+true	76ff8518da153e64a8403892fcbf11250	76ff8518da153e64a8403892fcbf11250	MachO	aarch64	true
 
-# ... and two different builds do not.
-query I
-SELECT count(*)
-FROM symbols.main.module_info('${VGI_SYMBOLS_DIR}/macho_inline.dwarf') AS b
-JOIN symbols.main.module_info('${VGI_SYMBOLS_DIR}/macho_compute.dwarf') AS d ON d.debug_id = b.debug_id;
+# ... two different builds do not ...
+query T
+SELECT coalesce(b.debug_id = d.debug_id, false) AS matches FROM (SELECT 1) AS one LEFT JOIN symbols.main.module_info('${VGI_SYMBOLS_DIR}/macho_inline.dwarf') AS b ON true LEFT JOIN symbols.main.module_info('${VGI_SYMBOLS_DIR}/macho_compute.dwarf') AS d ON true;
 ----
-0
+false
+
+# ... and missing paths still give one row (the verdict is false, columns NULL).
+query TTTTTT
+SELECT coalesce(b.debug_id = d.debug_id, false) AS matches, b.debug_id AS binary_debug_id, d.debug_id AS debug_file_debug_id, d.format, d.arch, d.has_line_table FROM (SELECT 1) AS one LEFT JOIN symbols.main.module_info('/srv/bin/myapp') AS b ON true LEFT JOIN symbols.main.module_info('/srv/debug/myapp.debug') AS d ON true;
+----
+false	NULL	NULL	NULL	NULL	NULL

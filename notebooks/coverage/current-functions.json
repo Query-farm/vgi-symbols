@@ -1,0 +1,464 @@
+{
+  "query": "SELECT * FROM duckdb_functions() WHERE database_name='symbols' ORDER BY schema_name,function_name",
+  "columns": [
+    "database_name",
+    "database_oid",
+    "schema_name",
+    "function_name",
+    "alias_of",
+    "function_type",
+    "description",
+    "comment",
+    "tags",
+    "return_type",
+    "parameters",
+    "parameter_types",
+    "varargs",
+    "macro_definition",
+    "has_side_effects",
+    "internal",
+    "extension_name",
+    "function_oid",
+    "examples",
+    "stability",
+    "categories"
+  ],
+  "rows": [
+    [
+      "symbols",
+      "22592",
+      "main",
+      "add_source",
+      null,
+      "table",
+      "Register a symbol source (dir/glob/debuginfod/s3/http); returns its source_id",
+      null,
+      {
+        "vgi.category": "Sources",
+        "vgi.doc_llm": "Register where debug files live so `symbolicate` can find them, returning the assigned `source_id`. Sources are tried in the order added; the first debug-id match wins. Local, zero-egress kinds: `dir` (`path =>` a directory of symbol files) and `glob` (`path =>` a recursive glob like '/builds/**/*.{debug,pdb,dSYM}'). Remote, egress kinds (opt-in, default disabled): `debuginfod` (`url =>`), `http` (`url =>`), and `s3` (`bucket =>`) \u2014 pass `enabled => true` to turn one on; credentials come from the SDK secret provider via `secret =>`, never inline. The default posture is air-gap-safe: with no remote source enabled there is zero network egress.",
+        "vgi.doc_md": "Register a symbol source and get its source_id. `add_source('dir', path => '/srv/debug')` or `add_source('glob', path => '/b/**/*.debug')`; remote kinds (debuginfod/s3/http) are opt-in (`enabled => true`) with secrets via `secret =>`.",
+        "vgi.executable_examples": "[{\"description\":\"Register a local, zero-egress directory of symbol files and capture its assigned source_id (use `add_source('glob', path => '/builds/**/*.{debug,pdb}')` for a recursive glob, or a remote kind like 'debuginfod'/'s3'/'http' with `enabled => true`).\",\"sql\":\"SELECT source_id FROM symbols.main.add_source('dir', path => '/srv/debug')\"}]",
+        "vgi.keywords": "[\"add_source\",\"symbol source\",\"dir\",\"glob\",\"debuginfod\",\"s3\",\"http\",\"debug files\",\"egress\",\"secret\",\"data residency\"]",
+        "vgi.result_columns_schema": "[\n  {\"name\": \"source_id\", \"type\": \"VARCHAR\", \"description\": \"The id assigned to the new source (e.g. src0). Pass it to drop_source to remove it.\"}\n]",
+        "vgi.title": "Add Symbol Source"
+      },
+      null,
+      [
+        "kind",
+        "secret",
+        "enabled",
+        "bucket",
+        "url",
+        "path"
+      ],
+      [
+        "VARCHAR",
+        "VARCHAR",
+        "BOOLEAN",
+        "VARCHAR",
+        "VARCHAR",
+        "VARCHAR"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22600,
+      [],
+      null,
+      []
+    ],
+    [
+      "symbols",
+      "22592",
+      "main",
+      "cache_evict",
+      null,
+      "table",
+      "Force-evict one module (or the whole resident set) from the cache; returns bytes freed",
+      null,
+      {
+        "vgi.category": "Cache",
+        "vgi.doc_llm": "Force whole-module eviction from the resident debug-info cache, returning the number of bytes freed. With `debug_id =>` set, evict just that module (e.g. after its symbol file was updated on disk); with no argument, clear the entire resident set. Either way the manifest entry is kept, so a later address re-parses the module from its origin rather than re-discovering it. Use it to reclaim RAM or to pick up an updated symbol file.",
+        "vgi.doc_md": "Evict from the resident cache and return bytes freed: `cache_evict(debug_id => '\u2026')` evicts one module, `cache_evict()` clears the resident set (manifest kept).",
+        "vgi.example_queries": "[{\"description\":\"Clear the entire resident cache (keeping the manifest) and report the bytes reclaimed; 0 on a cold worker with nothing resident.\",\"sql\":\"SELECT bytes_freed FROM symbols.main.cache_evict()\"}]",
+        "vgi.keywords": "[\"cache_evict\",\"evict\",\"LRU\",\"reclaim\",\"resident\",\"debug_id\",\"refresh symbols\"]",
+        "vgi.result_columns_schema": "[\n  {\"name\": \"bytes_freed\", \"type\": \"BIGINT\", \"description\": \"Resident bytes reclaimed by the eviction (0 if the module was not resident, or the cache was already empty).\"}\n]",
+        "vgi.title": "Cache Evict"
+      },
+      null,
+      [
+        "debug_id"
+      ],
+      [
+        "VARCHAR"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22601,
+      [],
+      null,
+      []
+    ],
+    [
+      "symbols",
+      "22592",
+      "main",
+      "cache_status",
+      null,
+      "table",
+      "Report the parsed/resident debug modules (the build-id-keyed cache state)",
+      null,
+      {
+        "vgi.category": "Cache",
+        "vgi.doc_llm": "Report what debug modules are parsed and resident right now (the stateful heart of this worker): one row per known debug-id \u2014 both modules resident in RAM and manifest-only entries (evicted or proven-missing). Columns: `debug_id`, `name` (debug file), `format`, `arch`, `bytes_resident` (0 if not resident), `rows_resolved` (cumulative addresses resolved against it), `last_used`, `origin` (where it came from), and `resident`. Order by `bytes_resident DESC` to see the hot modules. Use it to watch the parse-once / LRU behavior of the cache.",
+        "vgi.doc_md": "List the resident + known debug modules: debug_id, name, format, arch, bytes_resident, rows_resolved, last_used, origin, resident. The cache-observability surface.",
+        "vgi.executable_examples": "[{\"description\":\"List the debug modules the worker has parsed and the manifest knows about, hottest first. Returns no rows on a cold worker (nothing parsed yet); pass resident_only => true to skip evicted/manifest-only entries.\",\"sql\":\"SELECT debug_id, name, bytes_resident, rows_resolved FROM symbols.main.cache_status() ORDER BY bytes_resident DESC\"}]",
+        "vgi.keywords": "[\"cache_status\",\"cache\",\"resident\",\"parsed modules\",\"observability\",\"bytes_resident\",\"rows_resolved\",\"debug_id\",\"LRU\"]",
+        "vgi.result_columns_schema": "[\n  {\"name\": \"debug_id\", \"type\": \"VARCHAR\", \"description\": \"Normalized debug-id cache key.\"},\n  {\"name\": \"name\", \"type\": \"VARCHAR\", \"description\": \"Debug file name.\"},\n  {\"name\": \"format\", \"type\": \"VARCHAR\", \"description\": \"Container format (ELF / MachO / PE / PDB / \u2026).\"},\n  {\"name\": \"arch\", \"type\": \"VARCHAR\", \"description\": \"CPU architecture.\"},\n  {\"name\": \"bytes_resident\", \"type\": \"BIGINT\", \"description\": \"Resident footprint in bytes (0 if evicted / manifest-only).\"},\n  {\"name\": \"rows_resolved\", \"type\": \"BIGINT\", \"description\": \"Cumulative addresses resolved against this module.\"},\n  {\"name\": \"last_used\", \"type\": \"TIMESTAMPTZ\", \"description\": \"Timestamp of last use, or NULL if never used.\"},\n  {\"name\": \"origin\", \"type\": \"VARCHAR\", \"description\": \"Provenance the module is (re)parsed from (dir / glob / \u2026), or NULL.\"},\n  {\"name\": \"resident\", \"type\": \"BOOLEAN\", \"description\": \"True if the parsed module is currently resident in RAM.\"}\n]",
+        "vgi.title": "Cache Status"
+      },
+      null,
+      [
+        "resident_only"
+      ],
+      [
+        "BOOLEAN"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22602,
+      [],
+      null,
+      []
+    ],
+    [
+      "symbols",
+      "22592",
+      "main",
+      "demangle",
+      null,
+      "scalar",
+      "Demangle a raw linkage/symbol name into a readable function name (scheme auto-detected)",
+      null,
+      {
+        "vgi.category": "Demangling",
+        "vgi.doc_llm": "Turn a mangled linkage name into a human-readable function name. Supports Itanium C++ (`_Z...`), Rust legacy (`_ZN...`) and v0 (`_R...`), Microsoft Visual C++ (`?...`), and Swift mangling. The optional second argument `lang` selects the scheme \u2014 'auto' (the default, detect from the string), 'cpp', 'rust', 'msvc', or 'swift'. Pure and total: an unmangled or unrecognized name is returned unchanged, never an error. Use it when you already have raw names from another tool and want them readable in SQL.",
+        "vgi.doc_md": "Demangle a mangled symbol, e.g. `demangle('_ZN3foo3barEv')` -> 'foo::bar'. Optional positional `lang`: auto (default) / cpp / rust / msvc / swift. Returns the input unchanged if it is not mangled.",
+        "vgi.example_queries": "[{\"description\":\"Demangle an Itanium C++ linkage name into its readable form ('foo::bar').\",\"sql\":\"SELECT symbols.main.demangle('_ZN3foo3barEv') AS name\"}]",
+        "vgi.keywords": "[\"demangle\",\"mangled\",\"symbol\",\"linkage name\",\"c++\",\"itanium\",\"rust\",\"msvc\",\"swift\",\"function name\"]",
+        "vgi.title": "Demangle Symbol (with language)"
+      },
+      "VARCHAR",
+      [
+        "mangled"
+      ],
+      [
+        "ANY"
+      ],
+      null,
+      null,
+      false,
+      true,
+      null,
+      22596,
+      [],
+      "CONSISTENT",
+      []
+    ],
+    [
+      "symbols",
+      "22592",
+      "main",
+      "demangle",
+      null,
+      "scalar",
+      "Demangle a raw linkage/symbol name into a readable function name using the given mangling scheme (auto/cpp/rust/msvc/swift)",
+      null,
+      {
+        "vgi.category": "Demangling",
+        "vgi.doc_llm": "Turn a mangled linkage name into a human-readable function name. Supports Itanium C++ (`_Z...`), Rust legacy (`_ZN...`) and v0 (`_R...`), Microsoft Visual C++ (`?...`), and Swift mangling. The optional second argument `lang` selects the scheme \u2014 'auto' (the default, detect from the string), 'cpp', 'rust', 'msvc', or 'swift'. Pure and total: an unmangled or unrecognized name is returned unchanged, never an error. Use it when you already have raw names from another tool and want them readable in SQL.",
+        "vgi.doc_md": "Demangle a mangled symbol, e.g. `demangle('_ZN3foo3barEv')` -> 'foo::bar'. Optional positional `lang`: auto (default) / cpp / rust / msvc / swift. Returns the input unchanged if it is not mangled.",
+        "vgi.example_queries": "[{\"description\":\"Demangle an Itanium C++ linkage name into its readable form ('foo::bar').\",\"sql\":\"SELECT symbols.main.demangle('_ZN3foo3barEv') AS name\"}]",
+        "vgi.keywords": "[\"demangle\",\"mangled\",\"symbol\",\"linkage name\",\"c++\",\"itanium\",\"rust\",\"msvc\",\"swift\",\"function name\"]",
+        "vgi.title": "Demangle Symbol (with language)"
+      },
+      "VARCHAR",
+      [
+        "mangled",
+        "lang"
+      ],
+      [
+        "ANY",
+        "VARCHAR"
+      ],
+      null,
+      null,
+      false,
+      true,
+      null,
+      22596,
+      [],
+      "CONSISTENT",
+      []
+    ],
+    [
+      "symbols",
+      "22592",
+      "main",
+      "drop_source",
+      null,
+      "table",
+      "Remove a registered symbol source by id; returns whether one was removed",
+      null,
+      {
+        "vgi.category": "Sources",
+        "vgi.doc_llm": "Remove a previously-registered symbol source by its `source_id`, returning whether a source was actually removed. The local file index is rebuilt lazily on the next resolve.",
+        "vgi.doc_md": "Drop a symbol source by id: `drop_source('src0')`. Returns `dropped` (whether one was removed).",
+        "vgi.example_queries": "[{\"description\":\"Deregister the symbol source with id 'src0'; dropped is false if no such source was registered.\",\"sql\":\"SELECT dropped FROM symbols.main.drop_source('src0')\"}]",
+        "vgi.keywords": "[\"drop_source\",\"remove source\",\"source_id\",\"deregister\"]",
+        "vgi.result_columns_schema": "[\n  {\"name\": \"dropped\", \"type\": \"BOOLEAN\", \"description\": \"True if a source with that source_id existed and was removed; false if no such source was registered.\"}\n]",
+        "vgi.title": "Drop Symbol Source"
+      },
+      null,
+      [
+        "source_id"
+      ],
+      [
+        "VARCHAR"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22603,
+      [],
+      null,
+      []
+    ],
+    [
+      "symbols",
+      "22592",
+      "main",
+      "function_name",
+      null,
+      "scalar",
+      "Resolve a (build_id, address) frame to the innermost function name only",
+      null,
+      {
+        "vgi.category": "Resolution",
+        "vgi.doc_llm": "Resolve a `(build_id, address)` frame to just the innermost function name (demangled), or NULL if no symbols are found. The cheap path that skips file/line and inline-chain materialization \u2014 ideal as a flamegraph leaf label or a GROUP BY key for crash-bucketing across a fleet. `build_id` is the module's normalized debug-id or its raw per-format build-id hex (the worker normalizes); `address` is the **module-relative** virtual address (the caller subtracts the load base \u2014 see the address-model contract). Backed by the persistent build-id-keyed debug-info cache, so a column of millions of addresses parses each module once.",
+        "vgi.doc_md": "Resolve `(build_id, address)` to the innermost demangled function name (NULL if not found). `address` is module-relative (caller subtracts the load base). Cheaper than `symbolicate` \u2014 no file/line/inline.",
+        "vgi.example_queries": "[{\"description\":\"Resolve a frame (build-id 'e4c1f2b9', module-relative address 303600) to just its innermost function name; returns NULL until a symbol source for that build-id is registered with add_source.\",\"sql\":\"SELECT symbols.main.function_name('e4c1f2b9', 303600) AS function\"}]",
+        "vgi.keywords": "[\"function name\",\"symbolicate\",\"resolve\",\"addr2line\",\"flamegraph leaf\",\"group by\",\"crash bucket\",\"build_id\",\"address\"]",
+        "vgi.title": "Resolve Function Name"
+      },
+      "VARCHAR",
+      [
+        "build_id",
+        "address"
+      ],
+      [
+        "VARCHAR",
+        "UBIGINT"
+      ],
+      null,
+      null,
+      false,
+      true,
+      null,
+      22597,
+      [],
+      "CONSISTENT",
+      []
+    ],
+    [
+      "symbols",
+      "22592",
+      "main",
+      "inline_frames",
+      null,
+      "scalar",
+      "Resolve a (build_id, address) frame to its inline chain only (a list of STRUCT(function, file, line))",
+      null,
+      {
+        "vgi.category": "Resolution",
+        "vgi.doc_llm": "Resolve a `(build_id, address)` frame to just its inlined call chain \u2014 a `LIST(STRUCT(function, file, line))` ordered innermost-first, **excluding** the physical frame. Empty list when the address has no inlining (or no symbols). Useful to reconstruct a logically-deeper stack than the captured frame count. `build_id` is the normalized debug-id or raw build-id hex; `address` is the MODULE-RELATIVE virtual address (caller subtracts the load base). Backed by the persistent build-id-keyed cache.",
+        "vgi.doc_md": "Resolve `(build_id, address)` to its inline chain only: `LIST(STRUCT(function, file, line))`, innermost-first, without the physical frame. `address` is module-relative.",
+        "vgi.example_queries": "[{\"description\":\"Get the length of the inlined call chain (innermost-first, physical frame excluded) at module-relative address 303600 in build-id 'e4c1f2b9'; 0 until the address has both symbols and inlining.\",\"sql\":\"SELECT length(symbols.main.inline_frames('e4c1f2b9', 303600)) AS inline_depth\"}]",
+        "vgi.keywords": "[\"inline frames\",\"inlining\",\"inline chain\",\"symbolicate\",\"dwarf\",\"pdb\",\"stack\",\"build_id\",\"address\"]",
+        "vgi.title": "Inlined Call Chain at an Address"
+      },
+      "STRUCT(\"function\" VARCHAR, file VARCHAR, line INTEGER)[]",
+      [
+        "build_id",
+        "address"
+      ],
+      [
+        "VARCHAR",
+        "UBIGINT"
+      ],
+      null,
+      null,
+      false,
+      true,
+      null,
+      22598,
+      [],
+      "CONSISTENT",
+      []
+    ],
+    [
+      "symbols",
+      "22592",
+      "main",
+      "module_info",
+      null,
+      "table",
+      "Inspect a debug file given inline as a BLOB (format, debug-id, line info) without resolving",
+      null,
+      {
+        "vgi.category": "Modules",
+        "vgi.doc_llm": "Inspect a debug file named by a single filesystem `path` argument without resolving any frames: returns one row describing the container `format` ('ELF' / 'MachO' / 'PE' / 'PDB' / 'dSYM' / 'Breakpad'), the CPU `arch`, the raw per-format `build_id` hex and the normalized `debug_id` cache key (so you can check whether this file matches the frames you have), the `code_id`, the `has_dwarf` / `has_pdb` / `has_line_table` capability flags, the `symbol_count` / `file_count` / `byte_size`, and the image's preferred `image_base`. It is the triage tool \u2014 'does this file actually have line info, and does its debug-id match?' \u2014 answered header-only, without paying the parse-into-cache cost. Zero rows if the input is not a recognizable debug file.",
+        "vgi.doc_md": "Inspect a debug file by filesystem path (no resolve): one row with format, arch, build_id, debug_id, code_id, has_dwarf/has_pdb/has_line_table, symbol_count, file_count, byte_size, image_base \u2014 or zero rows if the path is missing or not a debug file.",
+        "vgi.executable_examples": "[{\"description\":\"Triage a debug file by filesystem path (one row with format / debug_id / has_line_table, or zero rows if the path is missing or not a debug file). Point it at a real symbol file on the worker host, e.g. '/srv/debug/libssl.so.debug'.\",\"sql\":\"SELECT * FROM symbols.main.module_info('/srv/debug/libssl.so.debug')\"}]",
+        "vgi.keywords": "[\"module_info\",\"inspect\",\"triage\",\"debug file\",\"ELF\",\"MachO\",\"PE\",\"PDB\",\"dSYM\",\"build_id\",\"debug_id\",\"has line table\",\"symbol count\"]",
+        "vgi.result_columns_schema": "[\n  {\"name\": \"format\", \"type\": \"VARCHAR\", \"description\": \"Container format: ELF / MachO / PE / PDB / dSYM / Breakpad.\"},\n  {\"name\": \"arch\", \"type\": \"VARCHAR\", \"description\": \"CPU architecture, e.g. x86_64 / aarch64.\"},\n  {\"name\": \"build_id\", \"type\": \"VARCHAR\", \"description\": \"Raw per-format build identifier (hex), or NULL.\"},\n  {\"name\": \"debug_id\", \"type\": \"VARCHAR\", \"description\": \"Normalized debug-id cache key, or NULL.\"},\n  {\"name\": \"code_id\", \"type\": \"VARCHAR\", \"description\": \"Code-file identifier, or NULL.\"},\n  {\"name\": \"has_dwarf\", \"type\": \"BOOLEAN\", \"description\": \"True if the file carries DWARF debug info.\"},\n  {\"name\": \"has_pdb\", \"type\": \"BOOLEAN\", \"description\": \"True if the file is / carries a Windows PDB.\"},\n  {\"name\": \"has_line_table\", \"type\": \"BOOLEAN\", \"description\": \"True if line-number info is present.\"},\n  {\"name\": \"symbol_count\", \"type\": \"BIGINT\", \"description\": \"Number of symbols discovered.\"},\n  {\"name\": \"file_count\", \"type\": \"BIGINT\", \"description\": \"Number of source files referenced.\"},\n  {\"name\": \"byte_size\", \"type\": \"BIGINT\", \"description\": \"Size of the debug file in bytes.\"},\n  {\"name\": \"image_base\", \"type\": \"UBIGINT\", \"description\": \"The image's preferred load base.\"}\n]",
+        "vgi.title": "Module Info (path)",
+        "vgi.example_queries": "[\n  {\"description\":\"Check that a separate debug file belongs to a shipped binary: inspect both with module_info and compare their debug_ids. Always one verdict row: matches is true (with the debug file's format, arch and has_line_table) when the build-ids match, false when they differ or either path is missing or not an object file (its columns are then NULL).\",\"sql\":\"SELECT coalesce(b.debug_id = d.debug_id, false) AS matches, b.debug_id AS binary_debug_id, d.debug_id AS debug_file_debug_id, d.format, d.arch, d.has_line_table FROM (SELECT 1) AS one LEFT JOIN symbols.main.module_info('/srv/bin/myapp') AS b ON true LEFT JOIN symbols.main.module_info('/srv/debug/myapp.debug') AS d ON true\"}\n]"
+      },
+      null,
+      [
+        "blob"
+      ],
+      [
+        "BLOB"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22604,
+      [],
+      null,
+      []
+    ],
+    [
+      "symbols",
+      "22592",
+      "main",
+      "module_info",
+      null,
+      "table",
+      "Inspect a debug file by path (format, debug-id, line info) without resolving",
+      null,
+      {
+        "vgi.category": "Modules",
+        "vgi.doc_llm": "Inspect a debug file named by a single filesystem `path` argument without resolving any frames: returns one row describing the container `format` ('ELF' / 'MachO' / 'PE' / 'PDB' / 'dSYM' / 'Breakpad'), the CPU `arch`, the raw per-format `build_id` hex and the normalized `debug_id` cache key (so you can check whether this file matches the frames you have), the `code_id`, the `has_dwarf` / `has_pdb` / `has_line_table` capability flags, the `symbol_count` / `file_count` / `byte_size`, and the image's preferred `image_base`. It is the triage tool \u2014 'does this file actually have line info, and does its debug-id match?' \u2014 answered header-only, without paying the parse-into-cache cost. Zero rows if the input is not a recognizable debug file.",
+        "vgi.doc_md": "Inspect a debug file by filesystem path (no resolve): one row with format, arch, build_id, debug_id, code_id, has_dwarf/has_pdb/has_line_table, symbol_count, file_count, byte_size, image_base \u2014 or zero rows if the path is missing or not a debug file.",
+        "vgi.executable_examples": "[{\"description\":\"Triage a debug file by filesystem path (one row with format / debug_id / has_line_table, or zero rows if the path is missing or not a debug file). Point it at a real symbol file on the worker host, e.g. '/srv/debug/libssl.so.debug'.\",\"sql\":\"SELECT * FROM symbols.main.module_info('/srv/debug/libssl.so.debug')\"}]",
+        "vgi.keywords": "[\"module_info\",\"inspect\",\"triage\",\"debug file\",\"ELF\",\"MachO\",\"PE\",\"PDB\",\"dSYM\",\"build_id\",\"debug_id\",\"has line table\",\"symbol count\"]",
+        "vgi.result_columns_schema": "[\n  {\"name\": \"format\", \"type\": \"VARCHAR\", \"description\": \"Container format: ELF / MachO / PE / PDB / dSYM / Breakpad.\"},\n  {\"name\": \"arch\", \"type\": \"VARCHAR\", \"description\": \"CPU architecture, e.g. x86_64 / aarch64.\"},\n  {\"name\": \"build_id\", \"type\": \"VARCHAR\", \"description\": \"Raw per-format build identifier (hex), or NULL.\"},\n  {\"name\": \"debug_id\", \"type\": \"VARCHAR\", \"description\": \"Normalized debug-id cache key, or NULL.\"},\n  {\"name\": \"code_id\", \"type\": \"VARCHAR\", \"description\": \"Code-file identifier, or NULL.\"},\n  {\"name\": \"has_dwarf\", \"type\": \"BOOLEAN\", \"description\": \"True if the file carries DWARF debug info.\"},\n  {\"name\": \"has_pdb\", \"type\": \"BOOLEAN\", \"description\": \"True if the file is / carries a Windows PDB.\"},\n  {\"name\": \"has_line_table\", \"type\": \"BOOLEAN\", \"description\": \"True if line-number info is present.\"},\n  {\"name\": \"symbol_count\", \"type\": \"BIGINT\", \"description\": \"Number of symbols discovered.\"},\n  {\"name\": \"file_count\", \"type\": \"BIGINT\", \"description\": \"Number of source files referenced.\"},\n  {\"name\": \"byte_size\", \"type\": \"BIGINT\", \"description\": \"Size of the debug file in bytes.\"},\n  {\"name\": \"image_base\", \"type\": \"UBIGINT\", \"description\": \"The image's preferred load base.\"}\n]",
+        "vgi.title": "Module Info (path)",
+        "vgi.example_queries": "[\n  {\"description\":\"Check that a separate debug file belongs to a shipped binary: inspect both with module_info and compare their debug_ids. Always one verdict row: matches is true (with the debug file's format, arch and has_line_table) when the build-ids match, false when they differ or either path is missing or not an object file (its columns are then NULL).\",\"sql\":\"SELECT coalesce(b.debug_id = d.debug_id, false) AS matches, b.debug_id AS binary_debug_id, d.debug_id AS debug_file_debug_id, d.format, d.arch, d.has_line_table FROM (SELECT 1) AS one LEFT JOIN symbols.main.module_info('/srv/bin/myapp') AS b ON true LEFT JOIN symbols.main.module_info('/srv/debug/myapp.debug') AS d ON true\"}\n]"
+      },
+      null,
+      [
+        "path"
+      ],
+      [
+        "VARCHAR"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22604,
+      [],
+      null,
+      []
+    ],
+    [
+      "symbols",
+      "22592",
+      "main",
+      "sources",
+      null,
+      "table",
+      "List the registered symbol sources (source_id, kind, location, enabled, egress)",
+      null,
+      {
+        "vgi.category": "Sources",
+        "vgi.doc_llm": "List the registered symbol sources in resolve order: `source_id`, `kind`, `location` (the path / url / bucket), `enabled`, and `egress` (whether using the source crosses the trust boundary). Use it to audit data residency \u2014 which sources are local (`egress=false`) versus remote, and which are enabled.",
+        "vgi.doc_md": "List registered symbol sources: source_id, kind, location, enabled, egress (in resolve order).",
+        "vgi.example_queries": "[\n  {\"description\":\"Find the local, zero-egress source kinds that are not registered yet (source_kinds anti-joined to sources()), with the add_source argument each one needs; returns dir and glob on a fresh worker, and only glob once a dir source is added.\",\"sql\":\"SELECT k.kind, k.locator_arg FROM symbols.main.source_kinds AS k WHERE k.egress = false AND k.kind NOT IN (SELECT s.kind FROM symbols.main.sources() AS s) ORDER BY k.kind\"}\n]",
+        "vgi.executable_examples": "[{\"description\":\"Audit the registered symbol sources in resolve order, including whether each is enabled and whether using it crosses the trust boundary (egress). Returns no rows until a source is registered with add_source; pass enabled_only => true to list only active sources.\",\"sql\":\"SELECT source_id, kind, location, enabled, egress FROM symbols.main.sources()\"}]",
+        "vgi.keywords": "[\"sources\",\"list sources\",\"audit\",\"data residency\",\"egress\",\"enabled\"]",
+        "vgi.result_columns_schema": "[\n  {\"name\": \"source_id\", \"type\": \"VARCHAR\", \"description\": \"Opaque id from add_source.\"},\n  {\"name\": \"kind\", \"type\": \"VARCHAR\", \"description\": \"Source kind: dir / glob / debuginfod / s3 / http.\"},\n  {\"name\": \"location\", \"type\": \"VARCHAR\", \"description\": \"The source's locator: path / url / bucket.\"},\n  {\"name\": \"enabled\", \"type\": \"BOOLEAN\", \"description\": \"True if the source is active.\"},\n  {\"name\": \"egress\", \"type\": \"BOOLEAN\", \"description\": \"True if using the source crosses the trust boundary (remote).\"}\n]",
+        "vgi.title": "Symbol Sources"
+      },
+      null,
+      [
+        "enabled_only"
+      ],
+      [
+        "BOOLEAN"
+      ],
+      null,
+      null,
+      null,
+      true,
+      null,
+      22605,
+      [],
+      null,
+      []
+    ],
+    [
+      "symbols",
+      "22592",
+      "main",
+      "symbolicate",
+      null,
+      "scalar",
+      "Resolve one (build_id, address) frame to a STRUCT with the inline chain collapsed into a list",
+      null,
+      {
+        "vgi.category": "Resolution",
+        "vgi.doc_llm": "Resolve a single `(build_id, address)` stack frame to a `STRUCT` with the physical frame's `function` / `file` / `line`, the inlined call chain collapsed into an `inlined` `LIST(STRUCT(function, file, line))` (innermost-first), and the `module`, `debug_id`, and `status` that answered. One row out \u2014 the convenience for resolving one frame in a scalar context; map it over a frame column to symbolicate in bulk, and `UNNEST` the `inlined` list for inline-expanded rows. `build_id` is the normalized debug-id or raw build-id hex; `address` is the MODULE-RELATIVE virtual address (caller subtracts the load base). `status` is 'ok', 'not_found' (no module), 'no_line' (no line info), or 'error:<kind>'. Backed by the persistent build-id-keyed cache.",
+        "vgi.doc_md": "Resolve one `(build_id, address)` to a `STRUCT(function, file, line, inlined, module, debug_id, status)`; `inlined` is the innermost-first inline chain. `address` is module-relative. Map it over a frame column to symbolicate in bulk; `UNNEST` the `inlined` list for inline-expanded rows.",
+        "vgi.example_queries": "[{\"description\":\"Symbolicate one module-relative frame (build-id 'e4c1f2b9', address 303600) and read the resolved function name and status off the returned struct; status is 'not_found' until a matching symbol source is registered with add_source.\",\"sql\":\"SELECT (symbols.main.symbolicate('e4c1f2b9', 303600)).function AS function, (symbols.main.symbolicate('e4c1f2b9', 303600)).status AS status\"}]",
+        "vgi.keywords": "[\"symbolicate\",\"resolve\",\"stack frame\",\"function\",\"file\",\"line\",\"inline\",\"addr2line\",\"dwarf\",\"pdb\",\"build_id\",\"address\",\"crash\",\"profiling\"]",
+        "vgi.title": "Symbolicate Frame (scalar)"
+      },
+      "STRUCT(\"function\" VARCHAR, file VARCHAR, line INTEGER, inlined STRUCT(\"function\" VARCHAR, file VARCHAR, line INTEGER)[], module VARCHAR, debug_id VARCHAR, status VARCHAR)",
+      [
+        "build_id",
+        "address"
+      ],
+      [
+        "VARCHAR",
+        "UBIGINT"
+      ],
+      null,
+      null,
+      false,
+      true,
+      null,
+      22599,
+      [],
+      "CONSISTENT",
+      []
+    ]
+  ]
+}

@@ -1,107 +1,152 @@
-# VGI Symbols notebooks
+# Native symbolication walkthrough
 
 [01 · Symbol availability and inline expansion are different dimensions](01_symbol_coverage_and_inline_expansion.ipynb)
-uses visible Haybarn SQL to inspect debug modules, configure local sources,
-symbolicate frame columns and expand inline chains while preserving every input.
-Two charts separate resolution coverage from expanded row count. Saved outputs are
-from the real published worker, using authored frames and committed debug fixtures.
+uses visible Haybarn SQL to inspect debug modules, choose and audit local symbol
+sources, resolve a frame column, compare physical and innermost function names,
+and expand inline chains while retaining every input record.
 
-## Run
+Ten **authored** frames use unchanged committed Mach-O debug fixtures. Duplicate
+addresses remain separate frame records. No live process is sampled and no fixture
+binary is executed. Counts describe these inputs, not CPU time, crash frequency or
+incident counts. Two charts separate file/line resolution coverage from inline-expanded
+row count.
 
-Install `uv`, then from this directory:
+## Run locally or in Colab
+
+Install [uv](https://docs.astral.sh/uv/), then from `notebooks/`:
 
 ```sh
 uv sync --locked
-uv run --locked python execute.py
+uv run --locked vgi-notebooks 01_symbol_coverage_and_inline_expansion.ipynb
 ```
 
-The entire `notebooks/` directory works when copied elsewhere; no worker checkout,
-compiler, live process or external symbol server is needed. Internet access is
-required initially for dependencies, the community VGI extension and native release.
-Your platform needs a matching release asset. Tested on macOS Apple silicon with
-Haybarn 2.0.0rc11. The debug fixtures are parsed as data and never executed.
+For an editor, select `notebooks/.venv/bin/python` and use `notebooks/` as the working
+directory. The Colab badge opens the same source, and a notebook-only copy can fetch
+its immutable fixtures through the shared registry. The visible bootstrap installs
+only shared base dependencies; local publication adds `[runner]`. Shared **v0.3.22**
+and Haybarn **2.0.0rc11** are pinned separately from the native worker. SQL starts with
+an empty temporary secret directory and persistent secrets disabled.
 
-The runner uses a fresh temporary kernel and this directory as its working directory,
-replacing saved outputs only after successful execution. For VS Code, select this
-directory's `.venv/bin/python`, or register it:
+Initial setup needs network access for Python dependencies, the community VGI
+extension, fixture companions and a matching native release asset. There is no
+compiler, worker checkout, live process or external symbol server requirement. The
+release supplies Linux x86_64/arm64, macOS arm64 and Windows x86_64 artifacts; actual
+execution here used macOS arm64. Hosted Colab was not manually run; a fresh preloaded
+Python 3.12 kernel verifies full notebook-only bootstrap and execution.
 
-```sh
-uv run --locked python -m ipykernel install --user --name vgi-symbols-notebooks --display-name 'Python (vgi-symbols notebooks)'
+The visible connection is:
+
+```sql
+ATTACH 'symbols' (TYPE vgi,
+ LOCATION 'github-auto://Query-farm/vgi-symbols@v0.4.0');
 ```
 
-**Restart the kernel before each full run or parameter experiment.** Worker sources,
-resident modules and negative-cache entries can survive a new connection in the
-same kernel. A pre-configuration guard requires empty source/cache state and asks
-for a restart instead of clearing unrelated state. Keep this directory as the
-interactive working directory. Connection and analytical SQL stay visible; helper
-code and cleanup are folded.
+The native transport downloads the published release, verifies its checksum and caches
+it. To upgrade, change the visible release and recheck both parameter modes. The
+worker's source-available license is documented in the root [LICENSE](../LICENSE).
 
-## Experiment
+**Restart the kernel before each complete run or experiment.** Configured sources,
+resident modules and negative-cache entries can survive a new connection within the
+same kernel. A pre-configuration guard requires empty source/cache state and asks for
+a restart instead of clearing unrelated state. Only local exact-file globs are enabled;
+no remote lookup is configured.
 
-```sh
-uv run --locked python execute.py --parameters '{"INCLUDE_COMPUTE_SYMBOLS": true}' --output-dir validation/compute
-```
+## Fixture provenance and address semantics
 
-Overrides require a separate destination, which receives branding, fixtures and
-environment companions. Enabling the second local debug source changes two compute
-frames from `not_found` to `ok`: file/line coverage rises from four to six of ten
-inputs. Both modes preserve ten input records and sixteen expanded rows, including
-six inline rows. The expansion chart stays unchanged. Reset `False` for the saved
-example, with a fresh kernel.
+The shared `symbols` registry retrieves seven unchanged files from notebook commit
+`5e610ee67f4c52f9950cfd65216071deb962ac08`. `prepare("symbols")` verifies their hashes
+and establishes the fixture-relative working directory. The notebook additionally
+checks [fixtures/manifest.json](fixtures/manifest.json) before connecting.
 
-## Worker and fixture provenance
-
-The literal native location is
-`github-auto://Query-farm/vgi-symbols@v0.4.0`. It downloads a native release, checks its
-hash and caches it. To upgrade, change the visible pin and verify both experiments.
-Notebook dependencies use their own locked environment. The worker's license is
-documented in the repository's root `LICENSE`.
-
-`macho_inline.dwarf` and `macho_compute.dwarf` are unchanged files from `test/symbols`.
-`prog.c` and `prog2.c` are unchanged provenance sources from
-`crates/symbols-core/tests/fixtures`. Their source revision and all five fixture
-hashes are recorded in `fixtures/manifest.json`. `frames.json` contains ten authored
-records using golden-test virtual addresses, repeated addresses, an unknown module,
-a far-out address and missing arguments. This is not a real crash or profiling sample.
+`macho_inline.dwarf` and `macho_compute.dwarf` are unchanged repository debug files;
+`prog.c` and `prog2.c` are their unchanged provenance sources. The manifest records
+source revision `1d76daf3589edc489960191781888f1020cd72d9` and all five data/source
+hashes. `frames.json` contains golden-test preferred virtual addresses, repeated
+addresses, an unknown module, a far-out address and missing arguments. It is not a
+real crash or profiling sample.
 
 ```sh
 uv run --locked python fixtures/build_frames.py
 ```
 
-That command regenerates only frame JSON and the manifest; it does not compile or
-modify the bundled debug modules. Rebuilding debug fixtures can change IDs and
-addresses, so the pinned files are supplied intact. Debug information contains original
-build-source paths; displayed file names are reduced to basenames. Those paths are
-metadata, not local files the notebook reads.
+This optional command regenerates only the authored frame JSON and manifest. It
+neither compiles nor modifies the supplied debug modules. Rebuilding debug fixtures
+can change IDs and addresses, so their original bytes are supplied intact. Debug
+metadata includes original build-source paths; displayed filenames are reduced to
+basenames. Those metadata paths are not files the notebook opens.
 
-Addresses are the fixture's preferred virtual addresses before any runtime slide.
-This notebook does not calculate ASLR or load-map corrections. The standalone debug
-files report `image_base=0`; that is not evidence of a real process's load bias.
-Both modules can be inspected even when one source is disabled; inspection does not
-register a resolution source. Configured globs point only at bundled files.
+Addresses are fixture virtual addresses before any runtime slide. This notebook does
+not perform ASLR or load-map correction. Standalone debug files report `image_base=0`;
+that is not a process load-bias measurement and does not justify rewriting the known
+fixture addresses. `module_info` can inspect both modules even when one source is
+disabled; inspection does not register a resolution source.
 
-## Interpretation and validation
+## Focused experiment
 
-The scalar's function is the physical function; its inline list excludes that
-physical frame. `function_name` instead returns the innermost inline name when one
-exists. Expansion explicitly retains one physical-record row per input, including
-unknown and missing cases. It adds inline rows without turning them into new samples.
-The no-line fixture has a fallback name, so name presence alone is not exact source
-coverage. Missing arguments return `not_found` in this release; the input audit keeps
-them separate from an unknown module. Cache counters are not a timing benchmark or
-an inferred parse count.
+Change only availability of the compute module, preserving the successful default:
 
-Default and detached experiment runs pass twelve SQL checks and two chart
-reconciliations. Both charts are inspected in both modes. Three runner guards cover
-overrides without a destination, unknown parameters, and failed invalid-parameter
-execution preserving outputs. Authored frames regenerate identically; all copied
-fixture bytes match their source and manifest hashes.
+```sh
+uv run --locked vgi-notebooks 01_symbol_coverage_and_inline_expansion.ipynb \
+  --parameters '{"INCLUDE_COMPUTE_SYMBOLS":true}' \
+  --output-dir validation/compute
+```
 
-Repository validation passes locked release build, 31 Rust tests, Clippy, formatting,
-warning-clean Rust documentation, 55 SQL assertions in three cases, cargo audit and
-the Rust 1.97 workspace check. All three CI fuzz targets pass their 45-second budgets
-(about 8.5 million runs combined). Metadata scores 100/100, L2, zero findings with
-structural and behavioral verification. Source and root dependencies remain unchanged.
+Predict that frames 6 and 7 change from `not_found` to `ok`. File/line coverage rises
+from **four to six of ten** input frames. Both modes preserve ten input records and
+sixteen expanded rows, including six inline rows. The compute addresses have no inline
+chain, so the expansion chart stays identical. Compare the physical/innermost-name
+table too; the fixed inline fixture keeps the same naming distinction. Reset `False`
+with a fresh kernel for the saved default.
 
-Official Query.Farm Strata Sun and VGI assets are bundled unchanged. The wordmark
-links to Query.Farm at the top and final bottom of the notebook.
+The runner requires a separate destination for overrides, rejects unknown parameters,
+and replaces saved outputs only after every cell succeeds. Published charts are linked
+SVGs under `charts/`; ignored PNG previews and logs are under `artifacts/` and
+`validation/`. Detached experiment copies carry their required companions.
+
+## Interpretation and verified coverage
+
+`symbolicate` supplies a physical function and a list of inline callees, innermost
+first. `function_name` returns the innermost name when present: frames 1 and 2 retain
+physical `apply` but have innermost `inner_lo`. A grouping key should name which grain
+it represents. This separate shortcut query is another resolution pass; cache counters
+must not be read as exactly one request per authored input or as a parse/timing benchmark.
+
+Expansion retains one physical-record row per input, including unknown and missing
+cases. Inline rows do not become new samples. The no-line fixture has a fallback name,
+so name presence alone is not exact source coverage. Missing arguments return
+`not_found` in this release; the input audit distinguishes them from an unknown module.
+
+[coverage.json](coverage.json) maps **seven of eleven** released and current public
+names to executed visible SQL, meaningful results and editorial findings. Complete
+native function/table/view exports live under [coverage/](coverage/), including the
+`source_kinds` view and empty table export. Overloads count once; mutation capabilities
+remain in the denominator. This focused story leaves `demangle`, `inline_frames`,
+`cache_evict` and `drop_source` uncovered. Broad design docs mention additional table
+forms and a version helper that these actual runtime catalogs do not expose; they are
+not silently inferred into or removed from the collected catalog.
+
+Both the actual public **v0.4.0** release and current source baseline
+`5e610ee67f4c52f9950cfd65216071deb962ac08` expose those eleven names. Current metadata
+adds composed examples; core resolution and scalar implementations are unchanged.
+The existing current binary was reused for catalog collection without rebuilding.
+Final notebook receipts describe release execution; current-interface compatibility is
+reviewed separately and is not an exact-current notebook execution claim.
+
+Validation includes the saved default, a detached notebook-only compute-source
+experiment, thirteen SQL invariants, two chart reconciliations, three runner guards
+and two invalid-parameter guards. Fixture hashes and regeneration agree. A fresh
+Python 3.12 kernel preserves preloaded pandas/Matplotlib/IPython/ipykernel/jupyter-client
+versions while running the base-only bootstrap and complete notebook. Four charts are
+reviewed across the two modes.
+
+For this notebook-only change, existing green [source CI](https://github.com/Query-farm/vgi-symbols/actions/runs/43564601307)
+is reused. That source revision differs from the publication baseline only by the
+previous notebook addition and README link. No worker rebuild, source test repetition,
+root dependency change or original-checkout modification is required.
+
+An additional detached attempt with an empty native-release cache received HTTP 403
+from GitHub's release-metadata endpoint. The successful parameter experiment reused
+the already verified native cache; its fresh fixture/bootstrap checks are separate.
+The initial HTTP failure is retained in validation evidence, and no alternate worker
+or fabricated output was substituted. A first-time reader still needs GitHub's release
+endpoint and matching artifact to be available.

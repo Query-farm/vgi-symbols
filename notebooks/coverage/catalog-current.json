@@ -1,0 +1,158 @@
+{
+  "schema_version": 1,
+  "repository": "Query-farm/vgi-symbols",
+  "revision": "5e610ee67f4c52f9950cfd65216071deb962ac08",
+  "captured_at": "2026-11-14T21:22:23.180520+00:00",
+  "default_schema": "main",
+  "scope": "all_public_functions_and_tables",
+  "complete": true,
+  "evidence": [
+    {
+      "path": "coverage/current-functions.json",
+      "sha256": "2733e88b3d170dd30de4de69f34e79aec31167fa03bb58ac38979f5f6f9ff708",
+      "description": "Complete worker-filtered functions export through actual published Haybarn"
+    },
+    {
+      "path": "coverage/current-tables.json",
+      "sha256": "440c96b9a7aab60449ffedb52aac5daae36bc49c7c6066c16fb609296ed12588",
+      "description": "Complete worker-filtered tables export through actual published Haybarn"
+    },
+    {
+      "path": "coverage/current-views.json",
+      "sha256": "ac39123f782c3b63d43cd6537051eff065dbed3d05b25cedb7ff4da87fa0dbe4",
+      "description": "Complete worker-filtered views export through actual published Haybarn"
+    }
+  ],
+  "objects": [
+    {
+      "schema": "main",
+      "name": "add_source",
+      "kind": "function",
+      "signatures": [
+        "add_source(VARCHAR, VARCHAR, BOOLEAN, VARCHAR, VARCHAR, VARCHAR)"
+      ],
+      "authentication": "optional",
+      "access": "read_write"
+    },
+    {
+      "schema": "main",
+      "name": "cache_evict",
+      "kind": "function",
+      "signatures": [
+        "cache_evict(VARCHAR)"
+      ],
+      "authentication": "none",
+      "access": "read_write"
+    },
+    {
+      "schema": "main",
+      "name": "cache_status",
+      "kind": "function",
+      "signatures": [
+        "cache_status(BOOLEAN)"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "demangle",
+      "kind": "function",
+      "signatures": [
+        "demangle(ANY)"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "demangle",
+      "kind": "function",
+      "signatures": [
+        "demangle(ANY, VARCHAR)"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "drop_source",
+      "kind": "function",
+      "signatures": [
+        "drop_source(VARCHAR)"
+      ],
+      "authentication": "none",
+      "access": "read_write"
+    },
+    {
+      "schema": "main",
+      "name": "function_name",
+      "kind": "function",
+      "signatures": [
+        "function_name(VARCHAR, UBIGINT)"
+      ],
+      "authentication": "optional",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "inline_frames",
+      "kind": "function",
+      "signatures": [
+        "inline_frames(VARCHAR, UBIGINT)"
+      ],
+      "authentication": "optional",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "module_info",
+      "kind": "function",
+      "signatures": [
+        "module_info(BLOB)"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "module_info",
+      "kind": "function",
+      "signatures": [
+        "module_info(VARCHAR)"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "sources",
+      "kind": "function",
+      "signatures": [
+        "sources(BOOLEAN)"
+      ],
+      "authentication": "none",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "symbolicate",
+      "kind": "function",
+      "signatures": [
+        "symbolicate(VARCHAR, UBIGINT)"
+      ],
+      "authentication": "optional",
+      "access": "read"
+    },
+    {
+      "schema": "main",
+      "name": "source_kinds",
+      "kind": "table",
+      "signatures": [
+        "VIEW"
+      ],
+      "authentication": "none",
+      "access": "read"
+    }
+  ]
+}

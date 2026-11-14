@@ -1,0 +1,43 @@
+{
+  "query": "SELECT * FROM duckdb_views() WHERE database_name='symbols' ORDER BY schema_name,view_name",
+  "columns": [
+    "database_name",
+    "database_oid",
+    "schema_name",
+    "schema_oid",
+    "view_name",
+    "view_oid",
+    "comment",
+    "tags",
+    "internal",
+    "temporary",
+    "column_count",
+    "sql",
+    "is_bound"
+  ],
+  "rows": [
+    [
+      "symbols",
+      22592,
+      "main",
+      22797,
+      "source_kinds",
+      22798,
+      "Reference registry of the five symbol-source kinds add_source accepts, with each kind's locality, egress posture, and locator argument.",
+      {
+        "domain": "observability",
+        "vgi.category": "Sources",
+        "vgi.doc_llm": "A static lookup table of the five symbol-source kinds the `add_source` function accepts, so an agent can discover valid inputs before registering a source. One row per kind with: `kind` (dir / glob / debuginfod / s3 / http), `locality` ('local' for zero-egress filesystem sources, 'remote' for opt-in network sources), `egress` (true when using the kind crosses the trust boundary), `locator_arg` (which `add_source` named argument locates it \u2014 `path`, `url`, or `bucket`), and a one-line `description`. Filter `egress = false` for the air-gap-safe local kinds, or read `locator_arg` to learn which argument a given kind needs.",
+        "vgi.doc_md": "## `source_kinds`\n\nA browsable, credential-free registry of the five symbol-source kinds `add_source` accepts \u2014 read it to discover valid inputs before registering a source.\n\nEach row is one kind:\n\n- **kind** \u2014 `dir`, `glob`, `debuginfod`, `s3`, or `http`.\n- **locality** \u2014 `local` (zero-egress filesystem) or `remote` (opt-in network).\n- **egress** \u2014 true when using the kind crosses the trust boundary.\n- **locator_arg** \u2014 the `add_source` named argument that locates it (`path` / `url` / `bucket`).\n- **description** \u2014 a one-line explanation.\n\nFilter `egress = false` for the local kinds, or read `locator_arg` to learn which argument a kind needs.",
+        "vgi.example_queries": "[{\"description\":\"List the local, zero-egress source kinds and the add_source argument that locates each.\",\"sql\":\"SELECT kind, locator_arg FROM symbols.main.source_kinds WHERE egress = false ORDER BY kind\"},{\"description\":\"Show every source kind with whether registering it crosses the trust boundary.\",\"sql\":\"SELECT kind, locality, egress FROM symbols.main.source_kinds ORDER BY egress, kind\"}]",
+        "vgi.keywords": "[\"source kinds\",\"add_source\",\"dir\",\"glob\",\"debuginfod\",\"s3\",\"http\",\"egress\",\"data residency\",\"locator\",\"reference\",\"vocabulary\"]",
+        "vgi.title": "Symbol Source Kinds"
+      },
+      false,
+      false,
+      null,
+      "CREATE VIEW source_kinds AS SELECT * FROM (SELECT * FROM (VALUES ('dir', 'local', false, 'path', 'A local directory of debug files, scanned for matching build-ids; zero egress.'), ('glob', 'local', false, 'path', 'A recursive filesystem glob of debug files, e.g. /builds/**/*.{debug,pdb,dSYM}; zero egress.'), ('debuginfod', 'remote', true, 'url', 'An elfutils debuginfod server, queried by build-id; opt-in and disabled by default.'), ('s3', 'remote', true, 'bucket', 'An S3 bucket of debug files; opt-in, disabled by default, credentials via a named secret.'), ('http', 'remote', true, 'url', 'An HTTP(S) base URL of debug files addressed by build-id; opt-in and disabled by default.')) AS valueslist) AS t(kind, locality, egress, locator_arg, description);",
+      false
+    ]
+  ]
+}

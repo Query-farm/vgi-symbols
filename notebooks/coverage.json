@@ -1,0 +1,277 @@
+{
+  "schema_version": 1,
+  "catalogs": {
+    "released": {
+      "path": "coverage/catalog-released.json",
+      "sha256": "0641afbdd6cdbb36ee41b62f786741d4074e18f02bc566f72488db546c5a6b2f",
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_sympy",
+        "reviewed_at": "2026-11-14T21:27:54.635873+00:00",
+        "catalog_sha256": "0641afbdd6cdbb36ee41b62f786741d4074e18f02bc566f72488db546c5a6b2f",
+        "notes": "Complete native function/table/view exports through actual Haybarn attachments reconcile eleven logical names: ten functions plus source_kinds view, with overloads merged. Optional authentication and state-mutating capabilities remain in the denominator. Actual registration omits broader design-doc resolve/resolve_batch/version forms; no runtime name is excluded. Current source changes only metadata/composed examples relative to v0.4.0, and the existing current binary was reused without building. Notebook execution is the public native release; current-interface compatibility is reviewed separately."
+      }
+    },
+    "current": {
+      "path": "coverage/catalog-current.json",
+      "sha256": "a733a5805f171d1c9029c4a58eb40f3c2d8c784387d00a910e114d9a4309d269",
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_sympy",
+        "reviewed_at": "2026-11-14T21:27:54.635873+00:00",
+        "catalog_sha256": "a733a5805f171d1c9029c4a58eb40f3c2d8c784387d00a910e114d9a4309d269",
+        "notes": "Complete native function/table/view exports through actual Haybarn attachments reconcile eleven logical names: ten functions plus source_kinds view, with overloads merged. Optional authentication and state-mutating capabilities remain in the denominator. Actual registration omits broader design-doc resolve/resolve_batch/version forms; no runtime name is excluded. Current source changes only metadata/composed examples relative to v0.4.0, and the existing current binary was reused without building. Notebook execution is the public native release; current-interface compatibility is reviewed separately."
+      }
+    }
+  },
+  "notebooks": [
+    {
+      "path": "01_symbol_coverage_and_inline_expansion.ipynb",
+      "sha256": "6519839cb349b86651a5d142e9f14091dfcf9ee1bde9ea2f3cb1412027f0b1a9",
+      "execution": {
+        "path": "coverage/run-01.json",
+        "sha256": "dc4e2d4334c3fc006f618a47729850ea21ff45430be98651750ff8ec133af684"
+      }
+    }
+  ],
+  "examples": [
+    {
+      "object": {
+        "schema": "main",
+        "name": "module_info"
+      },
+      "notebook": "01_symbol_coverage_and_inline_expansion.ipynb",
+      "sql": [
+        {
+          "cell": "3241d66c",
+          "reference": "symbols.main.module_info"
+        }
+      ],
+      "narrative_cells": [
+        "6854e35c"
+      ],
+      "result_cells": [
+        "3241d66c"
+      ],
+      "interpretation_cells": [
+        "585028f8"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_sympy",
+        "reviewed_at": "2026-11-14T21:27:54.635873+00:00",
+        "notebook_sha256": "6519839cb349b86651a5d142e9f14091dfcf9ee1bde9ea2f3cb1412027f0b1a9",
+        "catalog_sha256": [
+          "0641afbdd6cdbb36ee41b62f786741d4074e18f02bc566f72488db546c5a6b2f",
+          "a733a5805f171d1c9029c4a58eb40f3c2d8c784387d00a910e114d9a4309d269"
+        ],
+        "purpose": "Inspect both debug modules before deciding which one is available for frame resolution.",
+        "finding": "Both Mach-O aarch64 fixtures carry line tables and distinct normalized debug IDs. Inspection remains possible for the disabled compute module and does not enable it as a source. The standalone files report image_base zero, which is explicitly not treated as a process load bias or a reason to rewrite the fixed fixture addresses."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "source_kinds"
+      },
+      "notebook": "01_symbol_coverage_and_inline_expansion.ipynb",
+      "sql": [
+        {
+          "cell": "kind-query",
+          "reference": "symbols.main.source_kinds"
+        }
+      ],
+      "narrative_cells": [
+        "kind-question"
+      ],
+      "result_cells": [
+        "kind-query"
+      ],
+      "interpretation_cells": [
+        "kind-finding"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_sympy",
+        "reviewed_at": "2026-11-14T21:27:54.635873+00:00",
+        "notebook_sha256": "6519839cb349b86651a5d142e9f14091dfcf9ee1bde9ea2f3cb1412027f0b1a9",
+        "catalog_sha256": [
+          "0641afbdd6cdbb36ee41b62f786741d4074e18f02bc566f72488db546c5a6b2f",
+          "a733a5805f171d1c9029c4a58eb40f3c2d8c784387d00a910e114d9a4309d269"
+        ],
+        "purpose": "Choose an accepted local locator type before mutating worker source configuration.",
+        "finding": "The registry returns dir and glob as local zero-egress choices using path. The following SQL guard requires exactly one matching local glob capability. Exact-file globs permit independent source availability without configuring a directory or remote provider."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "add_source"
+      },
+      "notebook": "01_symbol_coverage_and_inline_expansion.ipynb",
+      "sql": [
+        {
+          "cell": "a94daf99",
+          "reference": "symbols.main.add_source"
+        }
+      ],
+      "narrative_cells": [
+        "585028f8"
+      ],
+      "result_cells": [
+        "a94daf99"
+      ],
+      "interpretation_cells": [
+        "768d86ec"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_sympy",
+        "reviewed_at": "2026-11-14T21:27:54.635873+00:00",
+        "notebook_sha256": "6519839cb349b86651a5d142e9f14091dfcf9ee1bde9ea2f3cb1412027f0b1a9",
+        "catalog_sha256": [
+          "0641afbdd6cdbb36ee41b62f786741d4074e18f02bc566f72488db546c5a6b2f",
+          "a733a5805f171d1c9029c4a58eb40f3c2d8c784387d00a910e114d9a4309d269"
+        ],
+        "purpose": "Configure the two bundled files independently so the experiment changes only source availability.",
+        "finding": "Each side-effecting registration is materialized once before displaying the source audit. The inline source is enabled and the compute source follows the parameter; both are local globs. Enabling compute changes two frames from not_found to ok without changing input IDs or expanded-row count."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "sources"
+      },
+      "notebook": "01_symbol_coverage_and_inline_expansion.ipynb",
+      "sql": [
+        {
+          "cell": "a94daf99",
+          "reference": "symbols.main.sources"
+        }
+      ],
+      "narrative_cells": [
+        "585028f8"
+      ],
+      "result_cells": [
+        "a94daf99"
+      ],
+      "interpretation_cells": [
+        "768d86ec"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_sympy",
+        "reviewed_at": "2026-11-14T21:27:54.635873+00:00",
+        "notebook_sha256": "6519839cb349b86651a5d142e9f14091dfcf9ee1bde9ea2f3cb1412027f0b1a9",
+        "catalog_sha256": [
+          "0641afbdd6cdbb36ee41b62f786741d4074e18f02bc566f72488db546c5a6b2f",
+          "a733a5805f171d1c9029c4a58eb40f3c2d8c784387d00a910e114d9a4309d269"
+        ],
+        "purpose": "Audit actual enabled configuration separately from the capability registry and file inspection.",
+        "finding": "The returned source rows show both exact fixture paths, the selected compute enabled flag and false egress. A supported source kind or an inspected file is not sufficient evidence of availability; this audit connects configuration to the controlled experiment."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "symbolicate"
+      },
+      "notebook": "01_symbol_coverage_and_inline_expansion.ipynb",
+      "sql": [
+        {
+          "cell": "673de9aa",
+          "reference": "symbols.main.symbolicate"
+        }
+      ],
+      "narrative_cells": [
+        "ccb6a674"
+      ],
+      "result_cells": [
+        "a5c56950"
+      ],
+      "interpretation_cells": [
+        "cb65c1c0"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_sympy",
+        "reviewed_at": "2026-11-14T21:27:54.635873+00:00",
+        "notebook_sha256": "6519839cb349b86651a5d142e9f14091dfcf9ee1bde9ea2f3cb1412027f0b1a9",
+        "catalog_sha256": [
+          "0641afbdd6cdbb36ee41b62f786741d4074e18f02bc566f72488db546c5a6b2f",
+          "a733a5805f171d1c9029c4a58eb40f3c2d8c784387d00a910e114d9a4309d269"
+        ],
+        "purpose": "Preserve every input and its original arguments while separating resolution coverage from inline expansion.",
+        "finding": "Default resolution yields four file/line records, one no-line fallback, three unavailable-module records and two separately labeled missing-argument records. Enabling compute raises file/line coverage to six of ten. Explicit physical-row retention keeps ten input records when six inline rows are added, producing sixteen output rows in both modes."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "function_name"
+      },
+      "notebook": "01_symbol_coverage_and_inline_expansion.ipynb",
+      "sql": [
+        {
+          "cell": "name-query",
+          "reference": "symbols.main.function_name"
+        }
+      ],
+      "narrative_cells": [
+        "name-question"
+      ],
+      "result_cells": [
+        "name-query"
+      ],
+      "interpretation_cells": [
+        "name-finding"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_sympy",
+        "reviewed_at": "2026-11-14T21:27:54.635873+00:00",
+        "notebook_sha256": "6519839cb349b86651a5d142e9f14091dfcf9ee1bde9ea2f3cb1412027f0b1a9",
+        "catalog_sha256": [
+          "0641afbdd6cdbb36ee41b62f786741d4074e18f02bc566f72488db546c5a6b2f",
+          "a733a5805f171d1c9029c4a58eb40f3c2d8c784387d00a910e114d9a4309d269"
+        ],
+        "purpose": "Show how an innermost-name shortcut changes a grouping key relative to physical function identity.",
+        "finding": "Frames 1, 2 and 3 have physical apply and innermost inner_lo, while frame 4 retains apply in both columns. The far-out frame retains fallback _main with no_line status. The thirteen checks verify shortcut agreement with the first inline frame or physical fallback; a non-null name is not a file/line quality flag."
+      }
+    },
+    {
+      "object": {
+        "schema": "main",
+        "name": "cache_status"
+      },
+      "notebook": "01_symbol_coverage_and_inline_expansion.ipynb",
+      "sql": [
+        {
+          "cell": "daf94107",
+          "reference": "symbols.main.cache_status"
+        }
+      ],
+      "narrative_cells": [
+        "f0ebee2a"
+      ],
+      "result_cells": [
+        "daf94107"
+      ],
+      "interpretation_cells": [
+        "f7e42458"
+      ],
+      "review": {
+        "status": "approved",
+        "reviewer": "Codex /root/notebooks_sympy",
+        "reviewed_at": "2026-11-14T21:27:54.635873+00:00",
+        "notebook_sha256": "6519839cb349b86651a5d142e9f14091dfcf9ee1bde9ea2f3cb1412027f0b1a9",
+        "catalog_sha256": [
+          "0641afbdd6cdbb36ee41b62f786741d4074e18f02bc566f72488db546c5a6b2f",
+          "a733a5805f171d1c9029c4a58eb40f3c2d8c784387d00a910e114d9a4309d269"
+        ],
+        "purpose": "Inspect resident modules and remembered misses after the two intentional resolution passes.",
+        "finding": "Default cache output has one resident inline module and two nonresident misses, including the disabled compute module. After enabling compute it becomes resident while the unknown module remains unavailable. Bytes and activity counters describe worker state; the notebook explicitly avoids interpreting them as input count, exact parse count or timing performance."
+      }
+    }
+  ]
+}

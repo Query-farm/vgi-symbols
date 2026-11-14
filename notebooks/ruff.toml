@@ -1,5 +1,6 @@
 line-length = 100
-target-version = "py313"
+builtins = ["con", "summary", "expansion", "checks"]
+exclude = [".venv", "artifacts", "validation", ".vgi-examples"]
 
-[lint]
-select = ["E4", "E7", "E9", "F"]
+[lint.per-file-ignores]
+"*.ipynb" = ["E501"]

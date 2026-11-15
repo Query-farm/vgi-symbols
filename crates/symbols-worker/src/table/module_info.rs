@@ -207,7 +207,7 @@ impl TableFunction for ModuleInfoBlob {
             "blob",
             0,
             "blob",
-            "The debug file bytes to inspect, a constant BLOB (e.g. `getvariable('f')` after \
+            "The debug file's contents to inspect, passed as a constant (e.g. `getvariable('f')` after \
              `SET VARIABLE f = (SELECT content FROM read_blob('<path or URL>'))`). Parsed \
              header-only — no resolve, no cache insertion.",
         )]

@@ -50,7 +50,7 @@ fn docs(blob: bool) -> (String, String, String) {
     let (llm, md) = if blob {
         (
             format!("Inspect a debug file whose bytes you pass inline as a single BLOB argument \
-                 (e.g. `read_blob('/path/libfoo.so.debug')`) without resolving any frames: {ROW_TAIL}"),
+                 (e.g. `module_info(getvariable('f'))` after `SET VARIABLE f = (SELECT content FROM read_blob('<path or URL>'))` — a table function takes only constant arguments) without resolving any frames: {ROW_TAIL}"),
             "Inspect debug-file bytes given inline as a BLOB (no resolve): one row with format, \
              arch, build_id, debug_id, code_id, has_dwarf/has_pdb/has_line_table, symbol_count, \
              file_count, byte_size, image_base — or zero rows if the bytes are not a debug file."
@@ -185,13 +185,12 @@ impl TableFunction for ModuleInfoBlob {
             "vgi.result_columns_schema".into(),
             RESULT_COLUMNS_SCHEMA.into(),
         ));
-        // Inline-BLOB overload: in practice pass the file's bytes, e.g.
-        // `module_info(read_blob('/srv/debug/libssl.so.debug'))`. The runnable
-        // example uses a short BLOB literal so it is self-contained; bytes that
-        // are not a recognizable debug file yield zero rows (no error).
+        // Inline-BLOB overload. A table function takes only constant arguments,
+        // so the example fetches a committed fixture's bytes into a session
+        // variable first (no placeholder local path: VGI516).
         tags.push((
             "vgi.executable_examples".into(),
-            r#"[{"description":"Triage debug-file bytes passed inline as a BLOB (returns one row with format / debug_id / has_line_table, or zero rows if the bytes are not a recognizable debug file). In practice read a real file: `module_info(read_blob('/srv/debug/libssl.so.debug'))`.","sql":"SELECT * FROM symbols.main.module_info('\\x7fELF'::BLOB)"}]"#
+            r#"[{"description":"Triage a debug file's bytes: fetch a committed Mach-O dSYM fixture with read_blob into a session variable, then inspect it (one row; zero rows if the bytes are not a recognizable debug file).","sql":[{"description":"Fetch the debug file's bytes.","sql":"SET VARIABLE symbols_dbg = (SELECT content FROM read_blob('https://raw.githubusercontent.com/Query-farm/vgi-symbols/v0.4.2/crates/symbols-core/tests/fixtures/macho_inline.dwarf'))"},{"description":"Inspect them without resolving.","sql":"SELECT format, arch, debug_id, has_line_table FROM symbols.main.module_info(getvariable('symbols_dbg'))","expected_result":[{"format":"MachO","arch":"aarch64","debug_id":"76ff8518da153e64a8403892fcbf11250","has_line_table":true}]}]}]"#
                 .into(),
         ));
         FunctionMetadata {
@@ -208,7 +207,8 @@ impl TableFunction for ModuleInfoBlob {
             "blob",
             0,
             "blob",
-            "The debug file bytes to inspect (e.g. `read_blob('/path/libfoo.so.debug')`). Parsed \
+            "The debug file bytes to inspect, a constant BLOB (e.g. `getvariable('f')` after \
+             `SET VARIABLE f = (SELECT content FROM read_blob('<path or URL>'))`). Parsed \
              header-only — no resolve, no cache insertion.",
         )]
     }
@@ -247,17 +247,17 @@ impl TableFunction for ModuleInfoPath {
         ));
         // Path overload: returns one row describing the file, or zero rows if the
         // path is missing or not a recognizable debug file (never an error). The
-        // example uses a placeholder path so it runs standalone (zero rows).
+        // worker reads its own filesystem, so the example first writes a
+        // committed fixture to the current directory with COPY ... (FORMAT blob)
+        // (no placeholder local path: VGI516). The composed debug-id match
+        // example is shared via `meta::EX_MATCH_DEBUG_FILE`.
         tags.push((
             "vgi.executable_examples".into(),
-            r#"[{"description":"Triage a debug file by filesystem path (one row with format / debug_id / has_line_table, or zero rows if the path is missing or not a debug file). Point it at a real symbol file on the worker host, e.g. '/srv/debug/libssl.so.debug'.","sql":"SELECT * FROM symbols.main.module_info('/srv/debug/libssl.so.debug')"}]"#
-                .into(),
-        ));
-        // Composed example (module_info on a binary joined to module_info on its
-        // debug file), shared with the schema-level list.
-        tags.push((
-            "vgi.example_queries".into(),
-            crate::meta::example_list(&[crate::meta::EX_MATCH_DEBUG_FILE]),
+            format!(
+                "[{},\n  {}]",
+                r#"{"description":"Triage a debug file by filesystem path: save a committed Mach-O dSYM fixture to the current directory, then inspect it by path (one row; zero rows if the path is missing or not a debug file).","sql":[{"description":"Write the fixture to a local file the worker can read.","sql":"COPY (SELECT content FROM read_blob('https://raw.githubusercontent.com/Query-farm/vgi-symbols/v0.4.2/crates/symbols-core/tests/fixtures/macho_inline.dwarf')) TO 'macho_inline.dwarf' (FORMAT blob)"},{"description":"Inspect it by path without resolving.","sql":"SELECT format, debug_id, has_line_table FROM symbols.main.module_info('macho_inline.dwarf')","expected_result":[{"format":"MachO","debug_id":"76ff8518da153e64a8403892fcbf11250","has_line_table":true}]}]}"#,
+                crate::meta::EX_MATCH_DEBUG_FILE,
+            ),
         ));
         FunctionMetadata {
             description: "Inspect a debug file by path (format, debug-id, line info) without \

@@ -4,6 +4,24 @@ All notable changes to `vgi-symbols` are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and the project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.3] — 2026-11-15
+
+### Fixed
+- Examples no longer read placeholder local paths (`/srv/debug/libssl.so.debug`,
+  `/srv/bin/myapp`, `/srv/debug/myapp.debug`) that exist on no user's machine
+  (vgi-lint VGI516). `module_info` examples now read the committed Mach-O dSYM
+  fixture from a URL pinned to `v0.4.2` and return real rows: the BLOB overload
+  fetches it with `read_blob` into a session variable, the path overload first
+  writes it to the current directory with `COPY ... (FORMAT blob)`, and the
+  debug-id match example compares the downloaded file's `debug_id` with a crash
+  report's module debug-ids (one `true`, one `false` verdict). These are
+  multi-step `vgi.executable_examples` with `expected_result`, so the two
+  single-statement `module_info` entries left the schema-level example list.
+- `module_info` docs no longer suggest `module_info(read_blob(...))`, which
+  cannot work (`read_blob` is a table function and table-function arguments
+  must be constants); they show the `SET VARIABLE` / `getvariable` form.
+- README examples 6 and 9 use the fixture and the variable form.
+
 ## [0.4.2] — 2026-11-15
 
 ### Fixed

@@ -209,11 +209,14 @@ pub fn catalog_metadata(name: &str) -> CatalogModel {
                         r#"{"description":"Symbolicate one module-relative frame to its function name and resolution status.","sql":"SELECT (symbols.main.symbolicate('e4c1f2b9', 303600)).function AS function, (symbols.main.symbolicate('e4c1f2b9', 303600)).status AS status"}"#,
                         r#"{"description":"Bulk-symbolicate a frame column: resolve each (build_id, address) to its innermost function name for a flamegraph or GROUP BY key.","sql":"SELECT f.build_id, f.address, symbols.main.function_name(f.build_id, f.address) AS function FROM stack_frames f"}"#,
                         r#"{"description":"Demangle a raw Itanium C++ linkage name to its readable form.","sql":"SELECT symbols.main.demangle('_ZN3foo3barEv') AS name"}"#,
-                        r#"{"description":"Triage a debug file by path, reading just its format and debug-id (zero rows if the path is missing).","sql":"SELECT format, debug_id FROM symbols.main.module_info('/srv/debug/libssl.so.debug')"}"#,
                         r#"{"description":"Watch the build-id-keyed cache: the hottest resident debug modules first.","sql":"SELECT debug_id, name, bytes_resident FROM symbols.main.cache_status() ORDER BY bytes_resident DESC"}"#,
                         // Composed: two of the worker's objects in one query.
                         crate::meta::EX_UNREGISTERED_LOCAL_KINDS,
-                        crate::meta::EX_MATCH_DEBUG_FILE,
+                        // module_info needs real debug-file bytes, which a single
+                        // illustrative statement cannot fetch (a table function
+                        // takes only constants), so its triage and debug-id-match
+                        // examples are multi-step executable examples on
+                        // module_info itself, reading committed fixtures (VGI516).
                     ]),
                 ),
             ],

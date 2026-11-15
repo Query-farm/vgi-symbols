@@ -57,7 +57,14 @@ pub fn example_list(items: &[&str]) -> String {
 /// source kinds not registered yet, with the `add_source` argument each needs.
 pub const EX_UNREGISTERED_LOCAL_KINDS: &str = r#"{"description":"Find the local, zero-egress source kinds that are not registered yet (source_kinds anti-joined to sources()), with the add_source argument each one needs; returns dir and glob on a fresh worker, and only glob once a dir source is added.","sql":"SELECT k.kind, k.locator_arg FROM symbols.main.source_kinds AS k WHERE k.egress = false AND k.kind NOT IN (SELECT s.kind FROM symbols.main.sources() AS s) ORDER BY k.kind"}"#;
 
-/// Composed example (`module_info` on a binary joined to `module_info` on a
-/// candidate debug file): confirm a separate debug file belongs to a shipped,
-/// stripped binary by matching their debug-ids.
-pub const EX_MATCH_DEBUG_FILE: &str = r#"{"description":"Check that a separate debug file belongs to a shipped binary: inspect both with module_info and compare their debug_ids. Always one verdict row: matches is true (with the debug file's format, arch and has_line_table) when the build-ids match, false when they differ or either path is missing or not an object file (its columns are then NULL).","sql":"SELECT coalesce(b.debug_id = d.debug_id, false) AS matches, b.debug_id AS binary_debug_id, d.debug_id AS debug_file_debug_id, d.format, d.arch, d.has_line_table FROM (SELECT 1) AS one LEFT JOIN symbols.main.module_info('/srv/bin/myapp') AS b ON true LEFT JOIN symbols.main.module_info('/srv/debug/myapp.debug') AS d ON true"}"#;
+/// Examples read the committed Mach-O dSYM fixtures from a URL pinned to a
+/// release tag that carries them (VGI516: no placeholder local paths), e.g.
+/// `https://raw.githubusercontent.com/Query-farm/vgi-symbols/v0.4.2/crates/symbols-core/tests/fixtures/macho_inline.dwarf`
+/// (debug_id `76ff8518da153e64a8403892fcbf11250`; `macho_compute.dwarf` is
+/// `4930eb84c7b63ef6a97fbdcdd473f5a30`).
+///
+/// Composed executable example (`module_info` on a downloaded debug file joined
+/// to the debug-ids a crash report lists): confirm a debug file belongs to the
+/// build that crashed by matching debug-ids. A table function takes only
+/// constant arguments, so the bytes go through a session variable first.
+pub const EX_MATCH_DEBUG_FILE: &str = r#"{"description":"Check that a downloaded debug file belongs to the build that crashed: compare its module_info debug_id with the debug-ids a crash report lists. One verdict row per crash module: matches is true for the build the file was produced from and false for any other build.","sql":[{"description":"Fetch the debug file's bytes (a committed Mach-O dSYM fixture) into a session variable.","sql":"SET VARIABLE symbols_debug_file = (SELECT content FROM read_blob('https://raw.githubusercontent.com/Query-farm/vgi-symbols/v0.4.2/crates/symbols-core/tests/fixtures/macho_inline.dwarf'))"},{"description":"Match it against the crash report's module debug-ids.","sql":"SELECT crash.crash_module, coalesce(d.debug_id = crash.debug_id, false) AS matches, d.debug_id AS debug_file_debug_id, d.format, d.arch, d.has_line_table FROM (VALUES ('compute', '4930eb84c7b63ef6a97fbdcdd473f5a30'), ('inline', '76ff8518da153e64a8403892fcbf11250')) AS crash(crash_module, debug_id) LEFT JOIN symbols.main.module_info(getvariable('symbols_debug_file')) AS d ON true ORDER BY crash.crash_module","expected_result":[{"crash_module":"compute","matches":false,"debug_file_debug_id":"76ff8518da153e64a8403892fcbf11250","format":"MachO","arch":"aarch64","has_line_table":true},{"crash_module":"inline","matches":true,"debug_file_debug_id":"76ff8518da153e64a8403892fcbf11250","format":"MachO","arch":"aarch64","has_line_table":true}]}]}"#;

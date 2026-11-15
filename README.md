@@ -45,7 +45,7 @@ Every [GitHub release](https://github.com/Query-farm/vgi-symbols/releases) ships
 INSTALL vgi FROM community;
 LOAD vgi;
 
-ATTACH 'symbols' AS symbols (TYPE vgi, LOCATION 'github-auto://Query-farm/vgi-symbols@v0.4.2');
+ATTACH 'symbols' AS symbols (TYPE vgi, LOCATION 'github-auto://Query-farm/vgi-symbols@v0.4.3');
 
 -- Symbolicate one module-relative frame to its function name and resolution status.
 SELECT (symbols.main.symbolicate('e4c1f2b9', 303600)).function AS function, (symbols.main.symbolicate('e4c1f2b9', 303600)).status AS status;
@@ -60,14 +60,14 @@ To resolve real frames, first point the worker at where your debug files live
 `CALL symbols.add_source('dir', path => '/srv/debug');` — see
 [Symbol sources](#symbol-sources-local-first-remote-opt-in) for remote/opt-in sources.
 
-Prebuilt binaries cover macOS (Apple silicon), Linux (x86-64 and arm64) and Windows (x86-64). `github-auto://` needs an explicit release tag; change `@v0.4.2` to move to a newer release.
+Prebuilt binaries cover macOS (Apple silicon), Linux (x86-64 and arm64) and Windows (x86-64). `github-auto://` needs an explicit release tag; change `@v0.4.3` to move to a newer release.
 
 ### Other ways to run it
 
 - **Docker** (the image bundles the worker; needs a container runtime):
 
   ```sql
-  ATTACH 'symbols' AS symbols (TYPE vgi, LOCATION 'docker://ghcr.io/query-farm/vgi-symbols:0.4.2');
+  ATTACH 'symbols' AS symbols (TYPE vgi, LOCATION 'docker://ghcr.io/query-farm/vgi-symbols:0.4.3');
   ```
 
 - **Manual download.** Download the archive for your platform from the [releases page](https://github.com/Query-farm/vgi-symbols/releases), verify it against its `.sha256` file (a cosign `.cosign.bundle` is published alongside), unpack it, and set `LOCATION` to the path of the extracted worker executable.
@@ -103,8 +103,14 @@ SELECT symbols.main.inline_frames(build_id, address) FROM frames;
 SELECT symbols.main.demangle('_ZN3foo3barEv');     -- → 'foo::bar'
 
 -- 6. Inspect a module before resolving: is it usable, and does its debug-id match?
-SELECT * FROM symbols.main.module_info('/srv/debug/libssl.so.debug');
---   → format MachO/ELF/PE/PDB, build_id, debug_id, arch, has_dwarf, has_line_table, symbol_count
+--    Pass a path the worker can read, or the file's bytes as a constant BLOB
+--    (a table function takes only constants, so go through a variable). Here,
+--    a committed Mach-O dSYM fixture:
+SET VARIABLE debug_file = (SELECT content FROM read_blob(
+  'https://raw.githubusercontent.com/Query-farm/vgi-symbols/v0.4.2/crates/symbols-core/tests/fixtures/macho_inline.dwarf'));
+SELECT * FROM symbols.main.module_info(getvariable('debug_file'));
+--   → MachO | aarch64 | build_id 76ff8518…1125 | debug_id 76ff8518da153e64a8403892fcbf11250
+--     | has_dwarf true | has_line_table true | symbol_count 4 | byte_size 9736
 
 -- 7. Cache observability (the stateful part) — what is parsed and resident now.
 SELECT debug_id, name, format, bytes_resident, rows_resolved, last_used
@@ -113,15 +119,16 @@ FROM   symbols.main.cache_status() ORDER BY bytes_resident DESC;
 -- 8. Audit where symbols come from (and whether any source egresses).
 SELECT * FROM symbols.main.sources();
 
--- 9. Does this debug file belong to the binary we shipped? Inspect both and
---    compare debug_ids: always one verdict row (matches = false when the
---    build-ids differ or either path is missing / not an object file).
-SELECT coalesce(b.debug_id = d.debug_id, false) AS matches,
-       b.debug_id AS binary_debug_id, d.debug_id AS debug_file_debug_id,
-       d.format, d.arch, d.has_line_table
-FROM   (SELECT 1) AS one
-LEFT   JOIN symbols.main.module_info('/srv/bin/myapp') AS b ON true
-LEFT   JOIN symbols.main.module_info('/srv/debug/myapp.debug') AS d ON true;
+-- 9. Does this debug file belong to the build that crashed? Compare its
+--    debug_id with the debug-ids the crash report lists (uses debug_file from 6).
+SELECT crash.crash_module, coalesce(d.debug_id = crash.debug_id, false) AS matches,
+       d.debug_id AS debug_file_debug_id, d.format, d.arch, d.has_line_table
+FROM   (VALUES ('compute', '4930eb84c7b63ef6a97fbdcdd473f5a30'),
+               ('inline',  '76ff8518da153e64a8403892fcbf11250')) AS crash(crash_module, debug_id)
+LEFT   JOIN symbols.main.module_info(getvariable('debug_file')) AS d ON true
+ORDER  BY crash.crash_module;
+--   → compute | false | 76ff…0 | MachO | aarch64 | true
+--     inline  | true  | 76ff…0 | MachO | aarch64 | true
 ```
 
 ### Functions

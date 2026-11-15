@@ -30,8 +30,8 @@ SELECT k.kind, k.locator_arg FROM symbols.main.source_kinds AS k WHERE k.egress 
 ----
 glob	path
 
-# module_info compared with module_info on debug_id (the EX_MATCH_DEBUG_FILE
-# shape, fixture paths swapped in): a file matches itself ...
+# module_info compared with module_info on debug_id, by path: a file matches
+# itself ...
 query TTTTTT
 SELECT coalesce(b.debug_id = d.debug_id, false) AS matches, b.debug_id AS binary_debug_id, d.debug_id AS debug_file_debug_id, d.format, d.arch, d.has_line_table FROM (SELECT 1) AS one LEFT JOIN symbols.main.module_info('${VGI_SYMBOLS_DIR}/macho_inline.dwarf') AS b ON true LEFT JOIN symbols.main.module_info('${VGI_SYMBOLS_DIR}/macho_inline.dwarf') AS d ON true;
 ----
@@ -48,3 +48,14 @@ query TTTTTT
 SELECT coalesce(b.debug_id = d.debug_id, false) AS matches, b.debug_id AS binary_debug_id, d.debug_id AS debug_file_debug_id, d.format, d.arch, d.has_line_table FROM (SELECT 1) AS one LEFT JOIN symbols.main.module_info('/srv/bin/myapp') AS b ON true LEFT JOIN symbols.main.module_info('/srv/debug/myapp.debug') AS d ON true;
 ----
 false	NULL	NULL	NULL	NULL	NULL
+
+# The EX_MATCH_DEBUG_FILE shape (module_info on debug-file bytes held in a
+# variable, matched against a crash report's debug-ids), fixture read locally.
+statement ok
+SET VARIABLE symbols_debug_file = (SELECT content FROM read_blob('${VGI_SYMBOLS_DIR}/macho_inline.dwarf'));
+
+query TTTTTT
+SELECT crash.crash_module, coalesce(d.debug_id = crash.debug_id, false) AS matches, d.debug_id AS debug_file_debug_id, d.format, d.arch, d.has_line_table FROM (VALUES ('compute', '4930eb84c7b63ef6a97fbdcdd473f5a30'), ('inline', '76ff8518da153e64a8403892fcbf11250')) AS crash(crash_module, debug_id) LEFT JOIN symbols.main.module_info(getvariable('symbols_debug_file')) AS d ON true ORDER BY crash.crash_module;
+----
+compute	false	76ff8518da153e64a8403892fcbf11250	MachO	aarch64	true
+inline	true	76ff8518da153e64a8403892fcbf11250	MachO	aarch64	true

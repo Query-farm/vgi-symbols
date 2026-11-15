@@ -68,7 +68,17 @@ pub fn catalog_metadata(name: &str) -> CatalogModel {
                  sources are zero-egress while remote ones (`debuginfod` / `s3` / `http`) are \
                  opt-in and off by default; and resolution is total — a missing or malformed \
                  module yields a per-row status, never a dropped row. The upstream feeders are \
-                 `vgi-minidump`, `vgi-pprof`, and `vgi-perf`."
+                 `vgi-minidump`, `vgi-pprof`, and `vgi-perf`.\n\n## Sources and references\n\n\
+                 - [DWARF Debugging Information Format](https://dwarfstd.org/) — the debug-info \
+                 standard read from ELF, Mach-O and dSYM files.\n\
+                 - [The PDB File Format (LLVM)](https://llvm.org/docs/PDB/index.html) — the \
+                 Windows program-database format used for PE modules.\n\
+                 - [debuginfod](https://sourceware.org/elfutils/Debuginfod.html) — the \
+                 build-id-keyed debug-info server protocol behind the opt-in `debuginfod` \
+                 source kind.\n\
+                 - [`addr2line`](https://docs.rs/addr2line) / [`gimli`](https://docs.rs/gimli) \
+                 and [`pdb-addr2line`](https://docs.rs/pdb-addr2line) — the Rust DWARF and PDB \
+                 resolvers the engine is built on."
                     .to_string(),
             ),
             (

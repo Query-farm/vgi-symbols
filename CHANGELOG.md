@@ -4,7 +4,12 @@ All notable changes to `vgi-symbols` are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and the project follows
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.4.1] — 2026-11-14
+
+### Changed
+- Docs link to upstream sources: the catalog docs now link the DWARF standard, the
+  LLVM PDB format docs, debuginfod, and the `addr2line` / `gimli` / `pdb-addr2line`
+  crates (vgi-lint VGI183).
 
 ### Added
 - Composed example queries that combine two of the worker's objects:

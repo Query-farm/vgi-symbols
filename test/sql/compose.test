@@ -12,12 +12,11 @@ LOAD vgi;
 statement ok
 ATTACH 'symbols' AS symbols (TYPE vgi, LOCATION '${VGI_SYMBOLS_WORKER}');
 
-# source_kinds anti-joined to sources(): on a fresh worker both local kinds are
-# still unregistered. This assertion relies on running before any other test
-# file registers a source in a reused worker process (the HTTP leg shares one
-# container across files); it does, as compose.test sorts first in test/sql.
+# Both local source kinds are offered. (Whether dir is already registered depends
+# on which test file ran first in a reused worker process — the HTTP leg shares one
+# container across files — so the anti-join below runs only after registering it.)
 query TT
-SELECT k.kind, k.locator_arg FROM symbols.main.source_kinds AS k WHERE k.egress = false AND k.kind NOT IN (SELECT s.kind FROM symbols.main.sources() AS s) ORDER BY k.kind;
+SELECT k.kind, k.locator_arg FROM symbols.main.source_kinds AS k WHERE k.egress = false ORDER BY k.kind;
 ----
 dir	path
 glob	path

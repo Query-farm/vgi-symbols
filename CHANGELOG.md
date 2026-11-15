@@ -4,6 +4,13 @@ All notable changes to `vgi-symbols` are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and the project follows
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.2] — 2026-11-15
+
+### Fixed
+- `test/sql/compose.test` no longer depends on running before other test files in a
+  shared worker process: it checks that both local source kinds are offered, then
+  registers `dir` and checks only `glob` is left. The v0.4.1 release build failed on it.
+
 ## [0.4.1] — 2026-11-14
 
 ### Changed

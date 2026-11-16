@@ -4,6 +4,12 @@ All notable changes to `vgi-symbols` are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and the project follows
 [Semantic Versioning](https://semver.org/).
 
+## 0.4.4 (2026-11-16)
+
+- VGI Rust SDK `vgi` 0.51.0 → 0.51.1 (`vgi-rpc` stays 0.32.4).
+- SQL tests now run through the starter's `ci/run-integration.sh` over stdio, launch and http; `make check` runs everything CI runs.
+- CI image test installs the pinned `haybarn-unittest`; new `make lint-explain` metadata gate (vgi-lint at fail-on=info).
+
 ## [0.4.3] — 2026-11-15
 
 ### Fixed

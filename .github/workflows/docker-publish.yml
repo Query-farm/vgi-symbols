@@ -73,83 +73,39 @@ jobs:
       version_check_cmd: "ci/check-version.sh"
       # Validate the built image's transports against the signed vgi extension.
       # The worker *logic* is already exercised every run by the gating `ci` job
-      # (all test/sql/*, unit + proptest, fuzz), so here we only prove the IMAGE's
-      # entrypoints speak the protocol end-to-end:
-      #   - stdio: run the FULL suite through `docker run … stdio` (on-host mode);
-      #   - HTTP : run the FULL suite against a SINGLE warm container (the default
+      # (all test/sql/*, stdio/launch/http, unit + proptest, fuzz), so here we only
+      # prove the IMAGE's entrypoints speak the protocol end-to-end, through
+      # ci/run-integration.sh with a preset LOCATION:
+      #   - stdio: the FULL suite through `docker run … stdio` (on-host mode);
+      #   - HTTP : the FULL suite against a SINGLE warm container (the default
       #            `http` entrypoint + /health).
-      # Both legs mount the committed dSYM fixtures (test/symbols) read-only into
-      # the container at /fixtures and point VGI_SYMBOLS_DIR at that CONTAINER
-      # path, because add_source/module_info resolve their paths inside the worker
-      # process (which runs in the container). $CITEST_IMAGE is the loaded
-      # <image>:citest-amd64 ref; GH_TOKEN is provided for the download.
+      # add_source/module_info resolve paths inside the worker process (in the
+      # container), so both legs mount the committed dSYM fixtures read-only at
+      # the same absolute path the script exports as VGI_SYMBOLS_DIR
+      # ($PWD/test/symbols). $CITEST_IMAGE is the loaded <image>:citest-amd64 ref.
       image_test: |
-        echo "::group::download haybarn-unittest"
-        REL=$(gh release list --repo Query-farm-haybarn/haybarn --limit 30 --json tagName \
-          --jq '[.[].tagName | select(startswith("haybarn-v2.0"))][0]')
-        [ -n "$REL" ] && [ "$REL" != null ] || { echo "::error::no haybarn-v2.0 release found"; exit 1; }
-        gh release download "$REL" --repo Query-farm-haybarn/haybarn \
-          --pattern 'haybarn_unittest-linux-amd64.zip' --output hb.zip --clobber
-        mkdir -p hb && unzip -o -q hb.zip -d hb
-        HAYBARN_UNITTEST="$PWD/$(find hb -name 'haybarn-unittest' -type f | head -1)"
-        chmod +x "$HAYBARN_UNITTEST"
+        echo "::group::install haybarn-unittest (pinned: Makefile HAYBARN_VERSION, as ci.yml)"
+        HAYBARN_VERSION="$(sed -n 's/^HAYBARN_VERSION *?= *//p' Makefile)"
+        test -n "$HAYBARN_VERSION" || { echo "HAYBARN_VERSION not found in Makefile" >&2; exit 1; }
+        if ! command -v uv >/dev/null; then
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          export PATH="$HOME/.local/bin:$PATH"
+        fi
+        uv venv -q --allow-existing .tools
+        uv pip install -q -p .tools "haybarn-unittest==$HAYBARN_VERSION"
+        export HAYBARN_UNITTEST="$PWD/.tools/bin/haybarn-unittest"
+        echo "::endgroup::"
         FIXTURES="$PWD/test/symbols"
-        echo "::endgroup::"
-
-        echo "::group::warm the client's extension dir (vgi from community + httpfs)"
-        # This runner never installed the extensions the .test files LOAD (the
-        # gating ci job did, but on a different runner), so warm the DuckDB
-        # extension directory once. The suite's `LOAD vgi;` (and the http leg's
-        # `LOAD httpfs;`) then resolve. The extension dir is HOME-based, shared
-        # across every haybarn invocation below regardless of --test-dir.
-        WARMDIR=$(mktemp -d); mkdir -p "$WARMDIR/test"
-        cat > "$WARMDIR/test/_warm.test" <<'WARM'
-        # name: test/_warm.test
-        # group: [warm]
-        statement ok
-        FORCE INSTALL vgi FROM community;
-
-        statement ok
-        INSTALL httpfs;
-        WARM
-        # (YAML's block-indent dedent already lands these directives at column 0,
-        # as the sqllogictest runner requires.)
-        "$HAYBARN_UNITTEST" --keep-home --test-dir "$WARMDIR" "test/_warm.test" \
-          || echo "::warning::extension warm step did not fully succeed"
-        echo "::endgroup::"
 
         echo "::group::stdio entrypoint smoke (full suite, cold container per ATTACH)"
-        STAGE=$(mktemp -d); mkdir -p "$STAGE/test/sql"
-        cp test/sql/*.test "$STAGE/test/sql/"
-        VGI_SYMBOLS_WORKER="docker run -i --rm -v $FIXTURES:/fixtures:ro $CITEST_IMAGE stdio" \
-          VGI_SYMBOLS_DIR="/fixtures" \
-          "$HAYBARN_UNITTEST" --keep-home --test-dir "$STAGE" "test/sql/*"
+        TRANSPORT=stdio \
+          VGI_SYMBOLS_WORKER="docker run -i --rm -v $FIXTURES:$FIXTURES:ro $CITEST_IMAGE stdio" \
+          ci/run-integration.sh
         echo "::endgroup::"
 
         echo "::group::full SQL suite — HTTP transport (one warm container)"
-        CID=$(docker run -d -p 18000:8000 -v "$FIXTURES":/fixtures:ro "$CITEST_IMAGE")
+        CID=$(docker run -d -p 18000:8000 -v "$FIXTURES:$FIXTURES:ro" "$CITEST_IMAGE")
         trap 'docker rm -f "$CID" >/dev/null 2>&1 || true' EXIT
         for _ in $(seq 1 30); do curl -fsS -o /dev/null http://localhost:18000/health && break; sleep 1; done
-        # The vgi extension's HTTP client rides on DuckDB httpfs, so the http
-        # ATTACH needs httpfs loaded in each .test session; inject it after the
-        # `LOAD vgi;` the files already carry (a missing httpfs surfaces as an
-        # "HTTP" error the sqllogictest runner silently auto-skips).
-        HSTAGE=$(mktemp -d); mkdir -p "$HSTAGE/test/sql"
-        for f in test/sql/*.test; do
-          awk '{print}
-               /^LOAD vgi;$/{print ""; print "statement ok"; print "INSTALL httpfs;"; print ""; print "statement ok"; print "LOAD httpfs;"}' \
-            "$f" > "$HSTAGE/test/sql/$(basename "$f")"
-        done
-        REPORT="$HSTAGE/.report.txt"
-        set -o pipefail
-        VGI_SYMBOLS_WORKER="http://localhost:18000" \
-          VGI_SYMBOLS_DIR="/fixtures" \
-          "$HAYBARN_UNITTEST" --keep-home --test-dir "$HSTAGE" "test/sql/*" 2>&1 | tee "$REPORT"
-        # A skip is NOT a pass: the runner auto-skips any test whose error message
-        # contains "HTTP" (default ignore list), so a broken http leg can exit 0
-        # while running nothing. Fail loudly if anything was skipped.
-        if grep -qiE "All tests were skipped|total skipped [1-9]" "$REPORT"; then
-          echo "::error::HTTP leg SKIPPED tests — an ATTACH/transport error was silently ignored (not a pass)." >&2
-          exit 1
-        fi
+        TRANSPORT=http VGI_SYMBOLS_WORKER="http://localhost:18000" ci/run-integration.sh
         echo "::endgroup::"

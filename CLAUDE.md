@@ -113,7 +113,7 @@ cargo clippy --all-targets -- -D warnings
 cargo fmt --all -- --check
 RUSTDOCFLAGS="-D warnings" cargo doc --no-deps --workspace
 cargo build --release             # build the worker
-./run_tests.sh                    # haybarn SQLLogic e2e
+make test-sql                     # haybarn SQLLogic e2e
 cd crates/symbols-worker/fuzz && cargo +nightly fuzz run parse_module   # zero-panic gate
 ```
 
@@ -122,7 +122,8 @@ E2E needs the haybarn tooling (one-time):
 uv tool install --prerelease allow 'haybarn-unittest>=2.0.0rc11,<2.1'
 echo "INSTALL vgi FROM community;" | uvx haybarn-cli
 ```
-`run_tests.sh` builds the worker and points `VGI_SYMBOLS_WORKER` at the binary
+`make test-sql` builds the worker and runs `ci/run-integration.sh`, which sets
+`VGI_SYMBOLS_WORKER` per transport (stdio, launch, http)
 and `VGI_SYMBOLS_DIR` at `test/symbols`.
 
 ### Regenerating the golden fixtures

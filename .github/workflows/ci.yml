@@ -13,6 +13,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # The SQL test runner (haybarn-unittest) every SQL job installs.
+  HAYBARN_VERSION: "2.0.0rc11"
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
 
@@ -45,8 +47,18 @@ jobs:
         run: cargo test --workspace --all-features
 
   e2e:
-    name: SQLLogic e2e (haybarn)
-    runs-on: ubuntu-latest
+    # SQL end-to-end: the SAME test/sql/*.test suite over each transport the vgi
+    # extension supports; ci/run-integration.sh sets VGI_SYMBOLS_WORKER per transport:
+    # stdio = DuckDB spawns the worker; launch = DuckDB starts it once on a unix
+    # socket and pools connections; http = `symbols-worker --http`.
+    name: SQLLogic e2e (haybarn, ${{ matrix.transport }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        transport: [stdio, launch, http]
     steps:
       - uses: actions/checkout@v4
 
@@ -58,19 +70,21 @@ jobs:
           shared-key: release
           save-if: ${{ github.ref == 'refs/heads/main' }}
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v5
 
-      - name: Install the haybarn unittest runner
+      - name: Build worker (release)
+        run: cargo build --locked --release --bin symbols-worker
+
+      - name: Install the SQL test runner
         run: |
-          uv tool install --prerelease allow 'haybarn-unittest>=2.0.0rc11,<2.1'
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          uv venv .tools
+          uv pip install -p .tools "haybarn-unittest==${HAYBARN_VERSION}"
 
-      - name: Install the vgi community extension
-        run: echo "FORCE INSTALL vgi FROM community;" | uvx --prerelease allow --from 'haybarn-cli>=2.0.0rc11,<2.1' haybarn-cli
-
-      - name: Run SQLLogic suite against the built worker
-        run: ./run_tests.sh
+      - name: Run test/sql over ${{ matrix.transport }}
+        run: |
+          export WORKER="$PWD/target/release/symbols-worker"
+          export HAYBARN_UNITTEST="$PWD/.tools/bin/haybarn-unittest"
+          TRANSPORT=${{ matrix.transport }} ci/run-integration.sh
 
   metadata-quality:
     name: metadata quality (vgi-lint)

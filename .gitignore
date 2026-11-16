@@ -12,3 +12,4 @@
 /crates/symbols-worker/fuzz/corpus
 /crates/symbols-worker/fuzz/artifacts
 # proptest regression seeds are committed deliberately; ignore transient ones elsewhere
+/.tools/

@@ -207,7 +207,7 @@ hang, or OOM:
 cargo test --workspace                          # unit + golden DWARF + cache + proptest no-panic
 cargo clippy --all-targets -- -D warnings
 cargo build --release                           # → target/release/symbols-worker
-./run_tests.sh                                  # haybarn SQLLogic e2e
+make test-sql                                   # haybarn SQLLogic e2e
 ```
 
 The end-to-end suite needs the haybarn tooling (one-time):

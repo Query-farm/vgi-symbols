@@ -4,6 +4,11 @@ All notable changes to `vgi-symbols` are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and the project follows
 [Semantic Versioning](https://semver.org/).
 
+## 0.5.0 (2026-11-25)
+
+- VGI protocol 3.4: `vgi` 0.53.2, `vgi-rpc` 0.33.1 (Orchard hosted mode; `blob-vendor` on the native build). Requires the 3.4 community `vgi` extension (haybarn 2.0.1).
+- SQL tests run on haybarn-unittest 2.0.1rc3. Dockerfile HEALTHCHECK probes `HEAD /health` (hosted mode answers anonymous GET with 401).
+
 ## 0.4.4 (2026-11-16)
 
 - VGI Rust SDK `vgi` 0.51.0 → 0.51.1 (`vgi-rpc` stays 0.32.4).
@@ -52,7 +57,7 @@ All notable changes to `vgi-symbols` are documented here. The format is based on
 ## [0.4.0] — 2026-11-12
 
 ### Changed
-- Ported to VGI protocol 3.3 (`vgi` 0.50.0 -> 0.51.0, `vgi-rpc` 0.32.3 -> 0.32.4).
+- Ported to VGI protocol 3.4 (`vgi` 0.50.0 -> 0.51.0, `vgi-rpc` 0.32.3 -> 0.32.4).
   The current haybarn `vgi` extension speaks 3.3 and rejects 3.2 workers. No
   SQL-visible change: every function stays registered as a public table function.
 
@@ -65,7 +70,7 @@ All notable changes to `vgi-symbols` are documented here. The format is based on
   "Symbolication Functions" instead of the headline-style "Symbols — main".
 
 ### Security
-- Build `vgi` without its default `sqlite` feature. vgi 0.50.0 pins rusqlite 0.39,
+- Build `vgi` without its default `sqlite` feature. vgi 0.53.2 pins rusqlite 0.39,
   whose bundled SQLite (libsqlite3-sys 0.37) is affected by RUSTSEC-2026-0459
   (CVE-2026-119375). The feature only backs the SDK's cross-process state store,
   which this worker does not use; the SDK now falls back to its `fs` store.
